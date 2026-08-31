@@ -1,0 +1,57 @@
+# 多源新闻下载器配置
+#
+# 顶层字段:
+#   time_window_hours: 仅保留最近 N 小时内发布的条目（download.py --no-filter 可关闭）
+#   http_timeout:      单个 HTTP 请求超时秒数
+#   fetch_comments:    （保留字段，各源各自配置）
+#
+# sources 下每项通过 type 选择抓取器，可选类型: rss / hackernews / reddit / twitter
+# 未知 type 会被记入 errors 并跳过，不阻塞其它源。
+
+time_window_hours: 48
+http_timeout: 30
+
+sources:
+  # --- RSS / Atom feeds ---
+  # 注意：Hacker News 不要用 RSS (https://news.ycombinator.com/rss)，
+  # 它只返回一个 "Comments" 链接、不含正文与评论，且与下方 hackernews API 源
+  # 共用同一文章 URL，会在去重时把带评论的 API 版本挤掉。HN 统一走 API 源。
+  - type: rss
+    name: MIT科技评论
+    url: https://www.technologyreview.com/topnews.rss
+    category: tech
+  - type: rss
+    name: 科学美国人
+    url: https://www.scientificamerican.com/platform/syndication/rss/
+  - type: rss
+    name: 彭博社
+    url: https://bloombergnew.buzzing.cc/feed.xml
+  - type: rss
+    name: Lil'Log
+    url: https://lilianweng.github.io/index.xml
+  - type: rss
+    name: Simon Willison's Weblog
+    url: https://simonwillison.net/atom/entries/
+  - type: rss
+    name: 打喷嚏
+    url: https://www.dapenti.com/blog/rss2.asp
+
+  # --- Hacker News（Firebase API，按 score 过滤）---
+  - type: hackernews
+    fetch_top_stories: 30
+    min_score: 100
+    fetch_comments: true
+
+  # --- Reddit（JSON API）---
+  - type: reddit
+    subreddits:
+      - name: MachineLearning
+        sort: hot
+        fetch_limit: 25
+        min_score: 10
+      - name: technology
+        sort: hot
+        fetch_limit: 25
+        min_score: 50
+    users: []
+    fetch_comments: 5   # 每篇抓取的 top 评论数，0 关闭
