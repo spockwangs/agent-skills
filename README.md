@@ -38,8 +38,11 @@ mkdir -p .cursor && ln -s ../skills .cursor/skills
 
 | Skill      | Description |
 | ---------- | ----------- |
+| `daily-news` | Aggregate daily news from multiple sources (RSS / HN / Reddit / Twitter), dedupe, score, and push a report. |
+| `download-audio` | Download audio from video sources (e.g. Bilibili) via a shell script. |
 | `elementary-math` | Design first-principles, visual elementary mathematics lessons and print-quality Chinese PDF worksheets. |
 | `obsidian` | Write and edit Obsidian markdown notes for technical / research topics. |
+| `stock-emotion` | Analyze stock market sentiment with a Python script. |
 
 Invoke a skill from your agent with `/obsidian` (or let the agent auto-trigger it based on the `description`).
 
