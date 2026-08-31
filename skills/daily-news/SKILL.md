@@ -10,7 +10,7 @@ context: fork
 
 # 每日新闻聚合
 
-用 `scripts/download.py` 从配置的新闻源（`scripts/sources.yaml`）并行抓取新闻，与历史记录去重，按 URL 聚合多源报道，AI 打分排序生成报告；报告最开头用 `scripts/market_snapshot.py` 嵌入市场情绪快照（港股恐贪指数 + 标普500ETF 溢价率），最后通过智能体邮箱（agent-mail）将报告 HTML 原文以邮件正文形式发送到用户邮箱（wbbtiger@gmail.com）。
+用 `scripts/download.py` 从配置的新闻源（`scripts/sources.yaml`）并行抓取新闻，与历史记录去重，按 URL 聚合多源报道，AI 打分排序生成报告；`scripts/report.py` 生成报告时内置市场情绪快照（港股恐贪指数 + 标普500ETF 溢价率）置于报告最开头，最后通过智能体邮箱（agent-mail）将报告 HTML 原文以邮件正文形式发送到用户邮箱（wbbtiger@gmail.com）。
 
 ## 缓存目录
 
@@ -21,7 +21,6 @@ context: fork
 ├── current.jsonl          # 本轮抓取的原始记录（每行一个 JSON）
 ├── aggregated.jsonl       # 按 URL 聚合后的最终结果
 ├── errors.jsonl           # 本轮抓取失败的条目
-├── snapshot.html          # 市场情绪快照（港股恐贪指数 + 标普500ETF 溢价率）
 └── history/
     └── YYYY-MM-DD.jsonl   # 当天已推送过的历史记录（用于去重）
 ```
@@ -200,26 +199,19 @@ with open(os.path.expanduser('~/.cache/daily-news/aggregated.jsonl'), 'w') as f:
 print(f'打分完成: {len(records)} 条' + (f'，WARNING: {missing} 条缺少打分' if missing else ''))
 ```
 
-### 第 5 步：生成市场情绪快照
+### 第 5 步：生成报告并通过智能体邮箱发送
 
-调用 `scripts/market_snapshot.py` 生成市场情绪快照（港股恐贪指数 + 标普500ETF 溢价率），输出 HTML 区块到 `~/.cache/daily-news/snapshot.html`：
+1. 调用 scripts/report.py 生成 **HTML 格式**报告到 `~/.cache/daily-news/report.html`（默认 `--format html`；如需旧格式可加 `--format markdown`）。只保留打分 ≥ 6 的新闻（`--min-score` 可调），低于阈值的条目在报告中剔除。report.py 会**内置生成市场情绪快照**（港股恐贪指数 + 标普500ETF 溢价率）并置于报告最开头（标题之后、新闻之前），无需额外步骤：
 
 ```shell
-python3 scripts/market_snapshot.py --out ~/.cache/daily-news/snapshot.html
+python3 scripts/report.py ~/.cache/daily-news/aggregated.jsonl --errors ~/.cache/daily-news/errors.jsonl --min-score 6 > ~/.cache/daily-news/report.html
 ```
 
 快照内容与容错：
 - **港股恐贪指数**：内置守猪逮兔 API 逻辑（签名 + 请求 + 过滤，不依赖其他技能），覆盖腾讯(00700)/美团(03690)/京东(09618)/阿里巴巴(09988)四只港股，输出表格 + 情绪彩色标签 + 更新时间。
 - **标普500ETF 博时(513500) 溢价率**：腾讯行情接口取场内现价 + 东方财富基金净值接口取官方单位净值，计算溢价率 = (现价 − 单位净值) ÷ 单位净值；溢价 ≥ 5% 时附加红色高溢价风险提示。
-- 单个数据源失败不阻塞整体：失败区块显示「数据暂不可用」占位；全部失败时脚本退出码为 1，仅提示后继续新闻流程（不中断每日简报）。
-
-### 第 6 步：生成报告并通过智能体邮箱发送
-
-1. 调用 scripts/report.py 生成 **HTML 格式**报告到 `~/.cache/daily-news/report.html`（默认 `--format html`；如需旧格式可加 `--format markdown`）。只保留打分 ≥ 6 的新闻（`--min-score` 可调），低于阈值的条目在报告中剔除。**必须传 `--snapshot` 将市场快照嵌入报告最开头（标题之后、新闻之前）：**
-
-```shell
-python3 scripts/report.py ~/.cache/daily-news/aggregated.jsonl --errors ~/.cache/daily-news/errors.jsonl --min-score 6 --snapshot ~/.cache/daily-news/snapshot.html > ~/.cache/daily-news/report.html
-```
+- 单个数据源失败不阻塞整体：失败区块显示「数据暂不可用」占位；全部失败时仅不显示快照标题，继续新闻流程（不中断每日简报）。
+- 如需跳过快照可加 `--no-snapshot`，单独跳过港股/ETF 可加 `--no-hk` / `--no-etf`。
 
 2. 通过智能体邮箱将报告 HTML 原文以**邮件正文**形式发送（不做任何摘要处理，不附带附件）：
    - 读取 `~/.cache/daily-news/report.html` 的完整内容
@@ -233,7 +225,7 @@ python3 scripts/report.py ~/.cache/daily-news/aggregated.jsonl --errors ~/.cache
    - 用户已授权每日自动推送；若返回 `CONFIRMATION_REQUIRED`，展示 `operation_summary` 请用户确认后带 `confirmation_token` 重试（自动化运行无人确认时在回复中说明「简报已生成，等待确认发送」，不视为失败）
    - agent-mail 不可用时回退 SMTP 方案：`EMAIL_TO=wbbtiger@gmail.com SMTP_APP_PASSWORD=... python3 scripts/send_email.py --report ~/.cache/daily-news/report.html`（send_email.py 自动识别 HTML/Markdown）；两者都不可用时提示「简报已生成于 ~/.cache/daily-news/report.html」，不视为失败
 
-### 第 7 步：归档历史
+### 第 6 步：归档历史
 
 推送完成后，将本轮记录归档：
 
