@@ -26,11 +26,11 @@
 set -eu
 
 # --- Config ------------------------------------------------------------------
-# agent id -> skills dir name. Codex skills live under .agents.
+# agent id -> skills dir name. Codex and Cursor share ~/.agents/skills.
 agent_dir() {
   case "$1" in
     claude)    printf '.claude' ;;
-    cursor)    printf '.cursor' ;;
+    cursor)    printf '.agents' ;;
     codebuddy) printf '.codebuddy' ;;
     codex)     printf '.agents' ;;
     workbuddy) printf '.workbuddy' ;;
@@ -52,6 +52,7 @@ SRC_DIR="$REPO_ROOT/skills"
 AGENTS_MD="$REPO_ROOT/AGENTS.md"
 MARKER='<!-- installed by agent-skills/install.sh -->'
 HAD_FAILURE=0
+PROCESSED_SKILL_ROOTS=""   # real skills paths already installed this run (agents sharing a dir)
 
 # --- Helpers -----------------------------------------------------------------
 if [[ -t 1 ]]; then
@@ -168,6 +169,14 @@ run_skills_for_agent() {
     log "  skills: target resolves to the source tree; skills already exposed here, skipping."
     return 0
   fi
+
+  # Several agents may share one skills dir (codex + cursor both use
+  # ~/.agents/skills). Install to a given real path only once per run, so a
+  # second pass doesn't re-copy or back up the first pass's work (copy mode).
+  case " $PROCESSED_SKILL_ROOTS " in
+    *" $real_target "*) log "  skills: target already handled for a sibling agent, skipping."; return 0 ;;
+  esac
+  PROCESSED_SKILL_ROOTS="$PROCESSED_SKILL_ROOTS $real_target"
 
   local skills; skills="$(list_skills)"
   [[ -n "$skills" ]] || { warn "no skills found under $SRC_DIR"; return 0; }
@@ -372,7 +381,7 @@ Options:
 
 Agents map to these skills / memory locations:
   claude     .claude/skills   |  CLAUDE.md (project) / ~/.claude/CLAUDE.md
-  cursor     .cursor/skills   |  AGENTS.md (project, native) / ~/.cursor/rules/agents.mdc
+  cursor     .agents/skills   |  AGENTS.md (project, native) / ~/.cursor/rules/agents.mdc
   codebuddy  .codebuddy/skills|  AGENTS.md (project, native) / ~/.codebuddy/CODEBUDDY.md
   codex      .agents/skills   |  AGENTS.md (project, native) / ~/.codex/AGENTS.md
   workbuddy  .workbuddy/skills|  AGENTS.md (project, native) / ~/.workbuddy/SOUL.md

@@ -9,7 +9,7 @@ All five tools share the **same skill format** — a directory containing a `SKI
 | Tool          | Project discovery path     |
 | ------------- | -------------------------- |
 | Claude Code   | `.claude/skills/`          |
-| Cursor        | `.cursor/skills/` *(also auto-loads `.claude/skills/` and `.agents/skills/`)* |
+| Cursor        | `.agents/skills/` *(shared with Codex; also auto-loads `.claude/skills/`)* |
 | CodeBuddy     | `.codebuddy/skills/`       |
 | Codex         | `.agents/skills/`          |
 | WorkBuddy     | `.workbuddy/skills/`       |
@@ -23,16 +23,12 @@ agent-skills/
 │       └── SKILL.md
 ├── .claude/skills      -> ../skills   # Claude Code
 ├── .codebuddy/skills   -> ../skills   # CodeBuddy
-├── .agents/skills      -> ../skills   # Codex (and Cursor compat)
+├── .agents/skills      -> ../skills   # Codex + Cursor
 ├── .workbuddy/skills   -> ../skills   # WorkBuddy
 └── README.md
 ```
 
-Cursor reads skills from `.claude/skills/` and `.agents/skills/` automatically, so it is covered by the symlinks above. If you want an explicit `.cursor/skills/` entry too, add it with:
-
-```bash
-mkdir -p .cursor && ln -s ../skills .cursor/skills
-```
+Cursor auto-loads `.agents/skills/` (and `.claude/skills/`), so it is covered by the symlinks above — no separate `.cursor/skills/` entry is needed.
 
 ## Skills
 
@@ -45,6 +41,7 @@ mkdir -p .cursor && ln -s ../skills .cursor/skills
 | `download-audio` | Download audio from video sources (e.g. Bilibili) via a shell script. |
 | `implement` | Implementation stage: takes the design (design + test plan), or a spec, or the plan just agreed in the conversation, and writes code + tests via a TDD red-green loop at pre-agreed seams, typechecking as it goes, running the full suite once at the end, then self-reviewing and committing to the current branch. Trusts the upstream, does not reopen the design; stops at the commit. |
 | `elementary-math` | Design first-principles, visual elementary mathematics lessons and print-quality Chinese PDF worksheets. |
+| `elementary-math-quiz` | Generate a printable primary-school math quiz for a specified knowledge point (trigger: 出试卷). |
 | `obsidian` | Write and edit Obsidian markdown notes for technical / research topics. |
 
 Invoke a skill from your agent with `/obsidian` (or let the agent auto-trigger it based on the `description`).
@@ -88,10 +85,10 @@ Because every tool points at the same `skills/` folder, the new skill is immedia
 Use the bundled `install.sh` to link (or copy) every skill under `skills/` into each agent's expected directory. It is idempotent, backs up anything it didn't create, and refuses to touch the source tree.
 
 ```bash
-# default: symlink, user scope (~/.claude, ~/.cursor, ~/.codebuddy, ~/.agents, ~/.workbuddy), all agents
+# default: symlink, user scope (skills + AGENTS.md), all agents
 ./install.sh
 
-# project scope: writes ./.claude/skills, ./.cursor/skills, ... (commit to share)
+# project scope: writes ./.claude/skills, ./.codebuddy/skills, ./.agents/skills, ./.workbuddy/skills (commit to share)
 ./install.sh --scope project
 
 # pick agents
@@ -104,7 +101,7 @@ Use the bundled `install.sh` to link (or copy) every skill under `skills/` into 
 ./install.sh --uninstall
 ```
 
-Run `./install.sh --help` for the full reference. Each skill is installed per-skill (e.g. `~/.claude/skills/obsidian -> <repo>/skills/obsidian`), so it coexists with any other skills you already have in those directories.
+Run `./install.sh --help` for the full reference. Each skill is installed per-skill (e.g. `~/.claude/skills/obsidian -> <repo>/skills/obsidian`); Codex and Cursor share `~/.agents/skills`, so it coexists with any other skills you already have in those directories.
 
 **Windows note:** symlinks may need Developer Mode enabled; otherwise use `--copy`.
 
