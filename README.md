@@ -46,6 +46,7 @@ mkdir -p .cursor && ln -s ../skills .cursor/skills
 | `implement` | Implementation stage: takes the design (design + test plan), or a spec, or the plan just agreed in the conversation, and writes code + tests via a TDD red-green loop at pre-agreed seams, typechecking as it goes, running the full suite once at the end, then self-reviewing and committing to the current branch. Trusts the upstream, does not reopen the design; stops at the commit. |
 | `elementary-math` | Design first-principles, visual elementary mathematics lessons and print-quality Chinese PDF worksheets. |
 | `obsidian` | Write and edit Obsidian markdown notes for technical / research topics. |
+| `research` | Delegate noisy investigation (many files, long logs, large diffs, wide surveys) to one or more local sub-agents so the orchestrator's context stays clean; work from a distilled answer plus evidence traced to primary sources (chase secondary write-ups to the source that owns the fact). Use before reading a pile of files inline. Open-web multi-source research is `deep-search`. |
 
 Invoke a skill from your agent with `/obsidian` (or let the agent auto-trigger it based on the `description`).
 
