@@ -13,17 +13,11 @@
 - 待提取 URL：{URL}
 - 读取工具提示：{读取工具}（Searcher 发现该 URL 所用的工具，据此选择抓取方式）
 
-## 抓取工具选择（按 URL 域名/来源确定，读取工具提示仅是线索，以实际域名为准）
-- **公网 URL**（github.com、modelcontextprotocol.io 等普通外网域名）：用 `web_fetch`。
-- **example**：必须用 `mcp__iwiki__getDocument`（docid 传页面路径 `/p/` 后的数字
-  ID），web_fetch 抓不到内部域名。
-- **example**：必须用 `mcp__km__show-article`（article 传完整 URL，建议加
-  full_content: true）。
-- **example**（工蜂项目/文件页）：必须用 `mcp__gongfeng__get_project_detail`
-  （project_id 传项目全路径），配合 `mcp__gongfeng__get_blob_content`、
-  `mcp__gongfeng__get_repository_tree`、`mcp__gongfeng__search_project_codewiki` 读
-  README/目录/源码（sha 可传分支名如 "master"）。
-- 页内引用的其它来源：按其域名套用同样的规则；公网引用可用 `web_fetch` 顺带核实。
+## 抓取工具选择
+先盘点当前环境里能读原文的工具。按 URL 类型选择**能实际读到该来源**的那个：公开网页用
+通用网页抓取；内网文档/知识库/代码托管用对应的专用读取工具。通用网页抓取通常读不到需
+鉴权的内部来源。读取工具提示只是线索，以实际 URL 类型为准。页内引用的其它来源同样按类
+型选工具。
 
 ## 提取要求
 1. 用选定的抓取工具读 `{URL}` 原文；必要时沿页面内的引用链接补充来源。
