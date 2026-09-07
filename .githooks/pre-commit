@@ -1,0 +1,61 @@
+#!/bin/bash
+#
+# Pre-commit hook: block commits containing sensitive text.
+# Scans only staged content (added/modified files).
+
+RED='\033[0;31m'
+RESET='\033[0m'
+
+# Patterns to reject (extended regex, one per line)
+SENSITIVE_PATTERNS=(
+    # API keys and tokens
+    'AKIA[0-9A-Z]{16}'                         # AWS Access Key ID
+    '(?i)(api[_-]?key|api[_-]?secret)\s*[=:]\s*\S+'
+    '(?i)(access[_-]?token|auth[_-]?token)\s*[=:]\s*\S+'
+    '(?i)(password|passwd|pwd)\s*[=:]\s*\S+'
+    '(?i)bearer\s+[a-zA-Z0-9\-._~+/]+'
+
+    # Private keys
+    '-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----'
+
+    # Generic secrets
+    '(?i)secret[_-]?key\s*[=:]\s*\S+'
+    '(?i)client[_-]?secret\s*[=:]\s*\S+'
+
+    # Custom patterns
+    'woa\.com'
+)
+
+ISSUES_FOUND=0
+
+for file in $(git diff --cached --name-only --diff-filter=ACM); do
+    # Skip binary files
+    if file "$file" | grep -q "binary"; then
+        continue
+    fi
+
+    staged_content=$(git show ":$file")
+
+    for pattern in "${SENSITIVE_PATTERNS[@]}"; do
+        matches=$(echo "$staged_content" | grep -nP "$pattern" 2>/dev/null)
+        if [[ -n "$matches" ]]; then
+            if [[ $ISSUES_FOUND -eq 0 ]]; then
+                echo -e "${RED}ERROR: Sensitive content detected in staged files!${RESET}"
+                echo ""
+            fi
+            echo -e "${RED}  File: $file${RESET}"
+            echo "$matches" | while IFS= read -r line; do
+                echo "    $line"
+            done
+            echo ""
+            ISSUES_FOUND=1
+        fi
+    done
+done
+
+if [[ $ISSUES_FOUND -ne 0 ]]; then
+    echo -e "${RED}Commit blocked. Remove sensitive content or use 'git commit --no-verify' to bypass.${RESET}"
+    exit 1
+fi
+
+exit 0
