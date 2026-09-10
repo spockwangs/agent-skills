@@ -3,7 +3,7 @@ name: analysis
 description: |
   需求分析阶段：通过反复、彻底的访谈（grilling）把模糊的需求打磨成清晰、可共享的分析结论；同时沉淀领域模型——术语表 CONTEXT.md 与关键决策 ADR。
 user-invocable: true
-disable-model-invocation: false
+disable-model-invocation: true
 ---
 
 # 需求分析（Analysis）
