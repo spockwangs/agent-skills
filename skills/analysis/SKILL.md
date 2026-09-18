@@ -91,17 +91,16 @@ disable-model-invocation: true
 
 ```
 /
-├── CONTEXT.md
-├── docs/
-│   └── adr/
-│       ├── 0001-event-sourced-orders.md
-│       └── 0002-postgres-for-write-model.md
-└── src/
+└── .ai
+    ├── CONTEXT.md
+    └── adr/
+        ├── 0001-event-sourced-orders.md
+        └── 0002-postgres-for-write-model.md
 ```
 
 如果根目录存在 `CONTEXT-MAP.md`，说明仓库有多个上下文，它指向每个上下文的位置。
 
-惰性创建文件：只有当有东西要写时才创建。如果没有 `CONTEXT.md`，在第一个术语被确定时创建它；如果没有 `docs/adr/`，在第一个 ADR 需要时创建它。
+惰性创建文件：只有当有东西要写时才创建。如果没有 `.ai/CONTEXT.md`，在第一个术语被确定时创建它；如果没有 `.ai/adr`，在第一个 ADR 需要时创建它。
 
 ## 完成标准
 
