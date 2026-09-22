@@ -39,7 +39,7 @@ Cursor auto-loads `.agents/skills/` (and `.claude/skills/`), so it is covered by
 | `daily-news` | Aggregate daily news from multiple sources (RSS / HN / Reddit / Twitter), dedupe, score, and push a report. |
 | `design` | Solution-design stage: takes the analysis spec, spawns 3 parallel sub-agents (minimal change / cleanest architecture / pragmatic middle ground), compares them for the user to choose, then emits a domain-terminology design plus test plan as the basis for implementation. |
 | `download-audio` | Download audio from video sources (e.g. Bilibili) via a shell script. |
-| `implement` | Implementation stage: takes the design (design + test plan), or a spec, or the plan just agreed in the conversation, and writes code + tests via a TDD red-green loop at pre-agreed seams, typechecking as it goes, running the full suite once at the end, then self-reviewing and committing to the current branch. Trusts the upstream, does not reopen the design; stops at the commit. |
+| `implement` | Implementation stage: takes the design (design + test plan), or a spec, or the plan just agreed in the conversation, first creates a branch from latest `origin/master` and pushes it to a same-named origin branch, then writes code + tests via a TDD red-green loop at pre-agreed seams, typechecking as it goes, running the full suite once at the end, then self-reviewing and committing to that branch. Trusts the upstream, does not reopen the design; stops at the commit. |
 | `elementary-math` | Design first-principles, visual elementary mathematics lessons and print-quality Chinese PDF worksheets. |
 | `elementary-math-quiz` | Generate a printable primary-school math quiz for a specified knowledge point (trigger: 出试卷). |
 | `obsidian` | Write and edit Obsidian markdown notes for technical / research topics. |
@@ -55,7 +55,7 @@ Invoke a skill from your agent with `/obsidian` (or let the agent auto-trigger i
 | --- | --- | --- | --- |
 | 需求分析 | `analysis` | 模糊的需求 | spec：问题陈述 / 需求分析 / 用户故事；另产出 `CONTEXT.md` 领域模型与 ADR |
 | 方案设计 | `design` | 分析阶段的 spec | 设计方案（领域与物理模型 Schema、模块变更、交互时序、接口契约）+ 测试方案（测试范围、测试用例、需 mock 的 seam） |
-| 实现 | `implement` | 设计方案 + 测试方案（或 spec / 当前上下文中已达成的共识） | 提交到当前分支的、通过测试的代码 |
+| 实现 | `implement` | 设计方案 + 测试方案（或 spec / 当前上下文中已达成的共识） | 基于最新 `master` 的实现分支（已 push 到 origin 同名分支）上、已提交的通过测试的代码 |
 
 三个技能都有明确边界：`analysis` 只回答「解决什么问题、为什么解决、范围多大」，`design` 才回答「怎么实现」，`implement` 把设计落成代码——**三者都不越界**。`analysis` 不写方案，`design` 不写代码，`implement` 不重开设计。若没有 spec 就直接跑 `/design`，它会先建议你跑 `/analysis`；若只有 spec 没有设计，`/implement` 会先和你确认 seam 再开始。
 
