@@ -44,6 +44,7 @@ Cursor auto-loads `.agents/skills/` (and `.claude/skills/`), so it is covered by
 | `elementary-math-quiz` | Generate a printable primary-school math quiz for a specified knowledge point (trigger: 出试卷). |
 | `obsidian` | Write and edit Obsidian markdown notes for technical / research topics. |
 | `research` | Delegate noisy investigation (many files, long logs, large diffs, wide surveys) to one or more local sub-agents so the orchestrator's context stays clean; work from a distilled answer plus evidence traced to primary sources (chase secondary write-ups to the source that owns the fact). Use before reading a pile of files inline. Open-web multi-source research is `deep-search`. |
+| `triage-issue` | Diagnose one issue from a link or number: whether it is a real problem, where it is stuck, and the next step. Verdicts are needs-triage, needs-info, ready, denied, or resolved. Shows the conclusion and waits for confirmation before commenting, relabeling, or closing. |
 
 Invoke a skill from your agent with `/obsidian` (or let the agent auto-trigger it based on the `description`).
 
