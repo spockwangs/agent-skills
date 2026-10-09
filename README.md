@@ -39,10 +39,11 @@ Cursor auto-loads `.agents/skills/` (and `.claude/skills/`), so it is covered by
 | `daily-news` | Aggregate daily news from multiple sources (RSS / HN / Reddit / Twitter), dedupe, score, and push a report. |
 | `design` | Solution-design stage: reads propose's settled understanding, `.agents/GLOSSARY.md`, and `.agents/adr/`, then writes one design plus a test plan in that vocabulary. |
 | `download-audio` | Download audio from video sources (e.g. Bilibili) via a shell script. |
-| `implement` | Builds the current spec, issue, or conversation with test-driven development and commits it on the current branch. Then a code-reviewer subagent runs `code-review`, and an implementer subagent fixes the findings. Does not reopen the design. |
+| `implement` | Builds the current spec, issue, or conversation with test-driven development on a new branch from `master`. Then a code-reviewer subagent runs `code-review`, and an implementer subagent fixes the findings. Does not reopen the design. |
 | `elementary-math` | Design first-principles, visual elementary mathematics lessons and print-quality Chinese PDF worksheets. |
 | `grill` | Interview primitive: grill a plan, decision, or idea in rounds until nothing is silently assumed. Model-invoked, so other skills call it. |
 | `propose` | User-invoked interview that calls `grill`, and writes resolved terms to `.agents/GLOSSARY.md` and hard decisions to `.agents/adr/` as they crystallise. |
+| `pr` | Commit the change, open a pull request, and have a subagent follow it until it merges or a person needs to step in. |
 | `elementary-math-quiz` | Generate a printable primary-school math quiz for a specified knowledge point (trigger: 出试卷). |
 | `obsidian` | Write and edit Obsidian markdown notes for technical / research topics. |
 | `research` | Delegate noisy investigation (many files, long logs, large diffs, wide surveys) to one or more local sub-agents so the orchestrator's context stays clean; work from a distilled answer plus evidence traced to primary sources (chase secondary write-ups to the source that owns the fact). Use before reading a pile of files inline. Open-web multi-source research is `deep-search`. |

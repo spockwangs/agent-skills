@@ -15,12 +15,14 @@ Keep communication with both subagents sparse, in both directions. Brief them ma
 
 ## Process
 
-1. Drive test-driven development by [tdd-loop.md](./references/tdd-loop.md). Confirm the seams with the user before the first test, then run red → green one seam at a time.
+1. Create a branch from `master` before writing any test or code. `git fetch origin`, then branch from `origin/master`. Use the branch name the user gave, or a short name for this work. Stop if the working tree is dirty. `git push -u origin HEAD` so the new branch tracks its remote. The fixed point for review is `origin/master`.
 
-2. Run typechecking regularly, single test files regularly, and the full test suite once at the end.
+2. Drive test-driven development by [tdd-loop.md](./references/tdd-loop.md). Confirm the seams with the user before the first test, then run red → green one seam at a time.
 
-3. Commit the work to the current branch. `code-review` reads `git diff <fixed-point>...HEAD`, so the review sees nothing until this commit exists. The fixed point is the commit this work started from.
+3. Run typechecking regularly, single test files regularly, and the full test suite once at the end.
 
-4. Launch one **code-reviewer** subagent. Brief it to call the Skill tool with `code-review`. It reviews. It does not edit code, and it does not call `implement`. It writes its report to `/tmp/code-reviews/<repo-name>-<short-sha>.md` and returns only that path and the finding count for each axis.
+4. Commit the work to the current branch. `code-review` reads `git diff <fixed-point>...HEAD`, so the review sees nothing until this commit exists. The fixed point is `origin/master`.
 
-5. Launch one **implementer** subagent, pointing it at the review report. It fixes the cited findings with the same red-green loop, commits on the current branch, and stops. It does not call the Skill tool with `implement` or `code-review`, and it does not spawn further agents. It returns only its commit SHAs and any finding it left unfixed, with the reason. If the review has no findings, skip this step.
+5. Launch one **code-reviewer** subagent. Brief it to call the Skill tool with `code-review`. It reviews. It does not edit code, and it does not call `implement`. It writes its report to `/tmp/code-reviews/<repo-name>-<short-sha>.md` and returns only that path and the finding count for each axis.
+
+6. Launch one **implementer** subagent, pointing it at the review report. It fixes the cited findings with the same red-green loop, commits on the current branch, and stops. It does not call the Skill tool with `implement` or `code-review`, and it does not spawn further agents. It returns only its commit SHAs and any finding it left unfixed, with the reason. If the review has no findings, skip this step.
