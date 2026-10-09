@@ -1,36 +1,24 @@
-# TDD 红→绿循环参考
+# TDD process
 
-`implement` 在每个 seam 上跑红→绿循环时对照本文件。每个循环都适用，循环前后都要看，不是事后才看。
+TDD is the red → green loop. Consult this file before and during every cycle, not after. It covers what a good test is, where tests go, where mocks go, and the rules of the loop.
 
-## 什么是好测试
+When exploring the codebase, read `.agents/GLOSSARY.md` (if it exists) so test names and interface vocabulary match the project's domain language, and respect ADRs under `.agents/adr/`.
 
-测试透过**公共接口**验证**行为**，不验证实现细节。代码可以整个重写，测试不该动。一个好测试读起来像规格说明："客户能用有效购物车结算"告诉你存在什么能力，并且能在重构后存活，因为它不在乎内部结构。
+## What a good test is
 
-## 循环规则
+Tests verify behavior through public interfaces, not implementation details. Code can change entirely; tests shouldn't. A good test reads like a specification: "user can checkout with valid cart" tells you exactly what capability exists, and it survives refactors because it doesn't care about internal structure.
 
-- **先红后绿**：先写失败的测试，再只写让它通过的最小代码。不预演未来的测试、不加投机功能。
-- **一次一片**：一个 seam、一个测试、一段最小实现，构成一个循环。
-- **垂直切片，不要水平切片**：不要先把所有测试写完再实现。批量测试验证的是**想象中**的行为，你会测事物的形状而不是用户面对的行为，并且在理解实现之前就锁死了测试结构。一片测试 → 一片实现 → 重复，每片是响应上一片结果的示踪弹。
-- **重构不在循环里**：重构属于收尾的自审环节，不在红→绿实现循环中混做。
+A good test:
 
-## 反模式
-
-### 实现细节耦合
-
-mock 了内部协作对象、测了私有方法、或通过旁路验证（查数据库而不是用接口）。
-
-**信号**：重构后行为没变，测试却挂了。
+- Tests behavior users or callers care about
+- Uses the public API only
+- Survives internal refactors
+- Describes what, not how
+- Makes one logical assertion
 
 ```typescript
-// BAD：mock 内部协作对象，断言调用
-test("checkout 调用 paymentService.process", async () => {
-  const mockPayment = jest.mock(paymentService);
-  await checkout(cart, payment);
-  expect(mockPayment.process).toHaveBeenCalledWith(cart.total);
-});
-
-// GOOD：透过接口断言外部行为
-test("客户能用有效购物车结算", async () => {
+// GOOD: tests observable behavior
+test("user can checkout with valid cart", async () => {
   const cart = createCart();
   cart.add(product);
   const result = await checkout(cart, paymentMethod);
@@ -38,56 +26,111 @@ test("客户能用有效购物车结算", async () => {
 });
 ```
 
-### 同义反复（Tautological）
-
-期望值用代码自己的方式重新算了一遍，于是测试按构造就通过，永远无法与代码意见相左。期望值必须来自**独立的真值来源**：已知的字面量、手算的例子、spec。
+Expected values come from an independent source of truth: a known-good literal, a worked example, or the spec.
 
 ```typescript
-// BAD：期望值用实现的方式重算
-test("calculateTotal 求和", () => {
-  const items = [{ price: 10 }, { price: 5 }];
-  const expected = items.reduce((sum, i) => sum + i.price, 0);
-  expect(calculateTotal(items)).toBe(expected);
-});
-
-// GOOD：期望值是独立的已知字面量
-test("calculateTotal 求和", () => {
+// GOOD: expected value is an independent, known literal
+test("calculateTotal sums line items", () => {
   expect(calculateTotal([{ price: 10 }, { price: 5 }])).toBe(15);
 });
 ```
 
-### 旁路验证
+### Anti-patterns
 
-绕过接口去查内部状态。
+- **Implementation-coupled.** The test mocks an internal collaborator, tests a private method, or verifies through a side channel. The tell: the test breaks when you refactor and the behavior has not changed. A test name that describes how is the same smell.
 
 ```typescript
-// BAD：绕过接口查数据库
-test("createUser 存进数据库", async () => {
+// BAD: mocks an internal collaborator and asserts the call
+test("checkout calls paymentService.process", async () => {
+  const mockPayment = jest.mock(paymentService);
+  await checkout(cart, payment);
+  expect(mockPayment.process).toHaveBeenCalledWith(cart.total);
+});
+
+// BAD: bypasses the interface
+test("createUser saves to database", async () => {
   await createUser({ name: "Alice" });
   const row = await db.query("SELECT * FROM users WHERE name = ?", ["Alice"]);
   expect(row).toBeDefined();
 });
 
-// GOOD：透过接口验证可观察行为
-test("createUser 让用户可被取回", async () => {
+// GOOD: verifies through the interface
+test("createUser makes user retrievable", async () => {
   const user = await createUser({ name: "Alice" });
   const retrieved = await getUser(user.id);
   expect(retrieved.name).toBe("Alice");
 });
 ```
 
-## mock 纪律
+- **Tautological.** The assertion recomputes the expected value the way the code does (`expect(add(a, b)).toBe(a + b)`, a snapshot derived by hand the same way, a constant asserted equal to itself). It passes by construction and can never disagree with the code.
 
-只在**系统边界**上 mock：
+```typescript
+// BAD: expected value is recomputed the way the code computes it
+test("calculateTotal sums line items", () => {
+  const items = [{ price: 10 }, { price: 5 }];
+  const expected = items.reduce((sum, i) => sum + i.price, 0);
+  expect(calculateTotal(items)).toBe(expected);
+});
+```
 
-- 外部 API（支付、邮件等）
-- 数据库（有时——优先用测试 DB）
-- 时间 / 随机性
-- 文件系统（有时）
+- **Horizontal slicing.** Writing all tests first, then all implementation. Bulk tests verify imagined behavior: you test the shape of things rather than user-facing behavior, the tests go insensitive to real changes, and you commit to test structure before understanding the implementation. Work in vertical slices instead: one test, then one implementation, then repeat. Each test is a tracer bullet that responds to what the last cycle taught you.
 
-**不要 mock**：你自己的类 / 模块、内部协作对象、任何你控制的东西。
+## Where to test
 
-在系统边界上为可测性设计接口：
+A **seam** is the public boundary you test at: the interface where you observe behavior without reaching inside. Tests live at seams, never against internals.
 
-1. **用依赖注入**：外部依赖传进来，而不是在内部 new 出来
-2. **优先 SDK 风格接口**：每个外部操作一个具体函数，而不是一个带条件分支的通用 fetcher——这样每个 mock 只返回一种形状，测试 setup 里没有条件逻辑
+Test only at pre-agreed seams. Before writing any test, write down the seams under test and confirm them with the user. No test is written at an unconfirmed seam. You can't test everything, so agreeing the seams up front is how testing effort lands on the critical paths and complex logic instead of every edge case.
+
+Ask: "What's the public interface, and which seams should we test?" Give each proposed seam a one-line note on what it catches and what it misses. When the source already names the seams, restate them and confirm those.
+
+When the shape of the interface is itself unsettled (how deep the module is, where the seam belongs, what the interface should expose), settle that public interface with the user before writing the test.
+
+## Where to mock
+
+Mock at system boundaries only:
+
+- External APIs (payment, email, and the like)
+- Databases (sometimes; prefer a test database)
+- Time and randomness
+- The file system (sometimes)
+
+Do not mock your own classes or modules, internal collaborators, or anything you control.
+
+At a system boundary, design an interface that is easy to mock.
+
+**Use dependency injection.** Pass external dependencies in rather than creating them internally.
+
+```typescript
+// Easy to mock
+function processPayment(order, paymentClient) {
+  return paymentClient.charge(order.total);
+}
+
+// Hard to mock
+function processPayment(order) {
+  const client = new StripeClient(process.env.STRIPE_KEY);
+  return client.charge(order.total);
+}
+```
+
+**Prefer SDK-style interfaces over a generic fetcher.** One specific function per external operation, not one function with conditional logic. Each mock then returns one shape, the test setup has no conditional logic, and it is obvious which operation a test exercises.
+
+```typescript
+// GOOD: each function is independently mockable
+const api = {
+  getUser: (id) => fetch(`/users/${id}`),
+  getOrders: (userId) => fetch(`/users/${userId}/orders`),
+  createOrder: (data) => fetch("/orders", { method: "POST", body: data }),
+};
+
+// BAD: mocking requires conditional logic inside the mock
+const api = {
+  fetch: (endpoint, options) => fetch(endpoint, options),
+};
+```
+
+## Rules of the loop
+
+- **Red before green.** Write the failing test first, then only enough code to pass it. Don't anticipate future tests or add speculative features.
+- **One slice at a time.** One seam, one test, one minimal implementation per cycle.
+- **Refactoring is not part of the loop.** It belongs to the review stage (`code-review`), not the red → green implementation cycle.

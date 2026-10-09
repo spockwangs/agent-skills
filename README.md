@@ -37,10 +37,12 @@ Cursor auto-loads `.agents/skills/` (and `.claude/skills/`), so it is covered by
 | `analysis` | Requirements-analysis stage: sharpen a vague requirement into a shared spec (problem statement / requirements analysis / user stories) through relentless interviewing, while producing a domain model: `CONTEXT.md` glossary and ADRs. Stops at the spec — solution design is the next stage. |
 | `code-review` | Two-axis review of the diff between HEAD and a fixed point you name (commit / branch / tag / merge-base). Standards: does the code follow this repo's documented coding standards (plus a built-in Fowler smell baseline)? Spec: does it faithfully implement the originating issue / spec? Each axis runs in its own parallel sub-agent; the two reports are presented side by side, never merged or re-ranked. Read-only; does not fix anything. |
 | `daily-news` | Aggregate daily news from multiple sources (RSS / HN / Reddit / Twitter), dedupe, score, and push a report. |
-| `design` | Solution-design stage: takes the analysis spec, spawns 3 parallel sub-agents (minimal change / cleanest architecture / pragmatic middle ground), compares them for the user to choose, then emits a domain-terminology design plus test plan as the basis for implementation. |
+| `design` | Solution-design stage: reads propose's settled understanding, `.agents/GLOSSARY.md`, and `.agents/adr/`, then writes one design plus a test plan in that vocabulary. |
 | `download-audio` | Download audio from video sources (e.g. Bilibili) via a shell script. |
-| `implement` | Implementation stage: takes the design (design + test plan), or a spec, or the plan just agreed in the conversation, first creates a branch from latest `origin/master` and pushes it to a same-named origin branch, then writes code + tests via a TDD red-green loop at pre-agreed seams, typechecking as it goes, running the full suite once at the end, then self-reviewing and committing to that branch. Trusts the upstream, does not reopen the design; stops at the commit. |
+| `implement` | Builds the current spec, issue, or conversation with test-driven development and commits it on the current branch. Then a code-reviewer subagent runs `code-review`, and an implementer subagent fixes the findings. Does not reopen the design. |
 | `elementary-math` | Design first-principles, visual elementary mathematics lessons and print-quality Chinese PDF worksheets. |
+| `grill` | Interview primitive: grill a plan, decision, or idea in rounds until nothing is silently assumed. Model-invoked, so other skills call it. |
+| `propose` | User-invoked interview that calls `grill`, and writes resolved terms to `.agents/GLOSSARY.md` and hard decisions to `.agents/adr/` as they crystallise. |
 | `elementary-math-quiz` | Generate a printable primary-school math quiz for a specified knowledge point (trigger: 出试卷). |
 | `obsidian` | Write and edit Obsidian markdown notes for technical / research topics. |
 | `research` | Delegate noisy investigation (many files, long logs, large diffs, wide surveys) to one or more local sub-agents so the orchestrator's context stays clean; work from a distilled answer plus evidence traced to primary sources (chase secondary write-ups to the source that owns the fact). Use before reading a pile of files inline. Open-web multi-source research is `deep-search`. |
@@ -48,19 +50,19 @@ Cursor auto-loads `.agents/skills/` (and `.claude/skills/`), so it is covered by
 
 Invoke a skill from your agent with `/obsidian` (or let the agent auto-trigger it based on the `description`).
 
-### 需求流水线：`analysis` → `design`
+### 需求流水线：`propose` → `design` → `implement`
 
-`analysis` 与 `design` 是一对串联技能，覆盖「从模糊需求到可实现 spec」的全过程：
+`propose` 把计划访谈到共识，并把术语和关键决策写进 `.agents/`。`design` 只消费这份已经定下来的理解，写出**一份**设计。`implement` 把设计落成代码。
 
 | 阶段 | 技能 | 输入 | 产出 |
 | --- | --- | --- | --- |
-| 需求分析 | `analysis` | 模糊的需求 | spec：问题陈述 / 需求分析 / 用户故事；另产出 `CONTEXT.md` 领域模型与 ADR |
-| 方案设计 | `design` | 分析阶段的 spec | 设计方案（领域与物理模型 Schema、模块变更、交互时序、接口契约）+ 测试方案（测试范围、测试用例、需 mock 的 seam） |
-| 实现 | `implement` | 设计方案 + 测试方案（或 spec / 当前上下文中已达成的共识） | 基于最新 `master` 的实现分支（已 push 到 origin 同名分支）上、已提交的通过测试的代码 |
+| 提案 | `propose` | 模糊的计划 | 共识；`.agents/GLOSSARY.md` 与 `.agents/adr/` |
+| 方案设计 | `design` | propose 的共识、术语表、ADR | 一份设计方案（领域与物理模型、模块变更、交互时序、接口契约）+ 测试方案 |
+| 实现 | `implement` | 当前 spec、issue，或对话里已经定下来的内容 | 当前分支上的提交。写完后由 code-reviewer 子 Agent 跑 `code-review`，再由 implementer 子 Agent 修审查指出的问题 |
 
-三个技能都有明确边界：`analysis` 只回答「解决什么问题、为什么解决、范围多大」，`design` 才回答「怎么实现」，`implement` 把设计落成代码——**三者都不越界**。`analysis` 不写方案，`design` 不写代码，`implement` 不重开设计。若没有 spec 就直接跑 `/design`，它会先建议你跑 `/analysis`；若只有 spec 没有设计，`/implement` 会先和你确认 seam 再开始。
+三个技能都有明确边界：`propose` 负责把问题和术语问清楚，`design` 写出怎么实现的那一份方案，`implement` 把已经定下来的内容落成代码。`design` 不重新访谈，也不并列多份方案。没有 propose 的产出就跑 `/design` 时，它会先建议跑 `/propose`。
 
-`code-review` 是这条链尾部的审查步骤，也可独立指向任意分支 / PR：`analysis → design → implement → code-review`。`implement` 的收尾自审参考它的两轴划分，但真正诚实的版本是从**新会话**里单独跑 `/code-review`——写代码的同一会话审查自己，是带着塑造代码的全部假设在审查。
+`implement` 在提交后自己拉起一次 `code-review`：审查交给一个不写代码的子 Agent，修复交给另一个子 Agent，只走一轮。`code-review` 也可以单独指向任意分支 / PR。
 
 ## Adding a skill
 

@@ -1,107 +1,26 @@
 ---
 name: implement
-description: 基于设计spec或用户需求编写代码。
+description: "Implement the current spec, issue, or conversation with test-driven development, then have a code-reviewer subagent run code-review and an implementer subagent fix the findings."
 user-invocable: true
-disable-model-invocation: false
+disable-model-invocation: true
 ---
 
-# 实现（Implement）
+Implement the work already described in the current spec, issue, or conversation. Do not interview, and do not reopen the design.
 
-把**已经决定的设计**变成可提交的代码。先在最新 `master` 上建好实现分支并推到 origin 同名分支，再在**预先确认的 seam** 上以 TDD 红→绿循环逐条垂直切片地推进，过程中频繁类型检查与单测，结束时跑一次全量测试、自审后提交到该分支。
+If the user names a source, use that one. Otherwise use a spec, then an issue, then the conversation. State which source you are implementing before you write code. If they pass an issue reference, fetch it and state its title. If the reference is ambiguous, ask. If the plan lives only in the conversation, say so and implement that. Do not search for a spec file that is not there.
 
-## 本技能的范围
+When the source contradicts itself or an existing ADR, stop and put the conflict in front of the user.
 
-本技能只做一件事：**把设计落成通过测试的代码并提交**。
+Keep communication with both subagents sparse, in both directions. Brief them mainly with **context pointers**: the spec path or issue reference, the review report path, research notes, the fixed point, and the commits to read. Leave out anything those pointers already hold. A source that lives only in the conversation has no pointer, so write it to a file outside the repo and pass that path.
 
-- **属于本阶段**：准备仓库环境（从最新 `master` 建实现分支并 push 到 origin 同名分支）、按设计方案 / 测试方案写代码、在 seam 上写测试、跑类型检查与测试、自审、提交
-- **不属于本阶段**：澄清需求、重开设计、提出备选方案、关闭工单、开 PR（除非用户明确要求）
+## Process
 
-本技能**信任上游**：`analysis` 澄清的需求、`design` 选定的方案与 seam，到了这里都是既定输入。不要在实现阶段重新访谈、重新选型、重新画时序图。如果发现上游有真问题，停下来指出来，而不是默默改方向。
+1. Drive test-driven development by [tdd-loop.md](./references/tdd-loop.md). Confirm the seams with the user before the first test, then run red → green one seam at a time.
 
-（仅"按既有测试跑一下"不是本技能——那是日常操作。本技能用于当你正在把一份设计 / spec / 已达成共识的计划落成代码时。）
+2. Run typechecking regularly, single test files regularly, and the full test suite once at the end.
 
-## 输入
+3. Commit the work to the current branch. `code-review` reads `git diff <fixed-point>...HEAD`, so the review sees nothing until this commit exists. The fixed point is the commit this work started from.
 
-按优先级识别输入来源：
+4. Launch one **code-reviewer** subagent. Brief it to call the Skill tool with `code-review`. It reviews. It does not edit code, and it does not call `implement`. It writes its report to `/tmp/code-reviews/<repo-name>-<short-sha>.md` and returns only that path and the finding count for each axis.
 
-1. **设计方案 + 测试方案**：首选。测试方案已经点名了测试范围、测试用例和需要 mock 的 seam，直接用。
-2. **spec**：有 spec 但没有设计。先读 spec，把 seam 摆到台面上和用户确认（见下方「seam 纪律」），再开始。
-3. **当前上下文**：既没有 spec 文件也没有设计文件，计划只存在于刚刚的对话里。**在 SKILL.md 里说一句"基于当前对话中已达成的共识"**，不要去翻找不存在的文件。如果共识还不够支撑写代码，先停下来问。
-
-无论哪种输入，开跑前都要能用一句话说清"这次要实现什么、在哪些 seam 上测"。说不清就先补齐，不要边猜边写。
-
-## 信任上游，不重开设计
-
-这是本技能和"直接让 agent 写代码"的关键区别：
-
-- **不访谈**：没有澄清轮次、没有追问需求。
-- **不另起方案**：不提出"其实换个做法更好"。设计阶段已经选过了。
-- **不扩大范围**：只实现设计里列出的模块变更，不顺手"改进"相邻代码。
-- **发现真问题就停**：如果设计有硬伤（接口自相矛盾、依赖不存在、违反已记录的 ADR），停下来摆到用户面前，而不是自行修正后继续。修正方向是用户的设计决策，不是实现细节。
-
-## 流程
-
-一次运行是六个节拍，顺序固定：
-
-### 1. 准备仓库环境：从最新 master 建实现分支
-
-在读设计、写测试之前先把工作树放到一条干净的实现分支上：
-
-1. `git fetch origin`，以 `origin/master` 为基线
-2. 工作树必须干净。有未提交改动就停，把现状摆给用户，不要 stash、不要混进实现
-3. 从 `origin/master` 新建并切到实现分支。用户已给分支名就用那个名字；没给就按本次要实现的内容起一个短名
-4. `git push -u origin HEAD`，把该分支推到 origin 同名远程分支并设置 upstream
-5. 确认 `HEAD` 就是这条新分支，tip 与 `origin/master` 一致，且已跟踪 `origin/<同名分支>`
-
-**完成标准**：当前在一条基于最新 `origin/master` 的新本地分支上，工作树干净，origin 上已有同名远程分支并已设为 upstream。做不到就停，不要在脏工作树、旧基线、或未推远程的本地分支上开始实现。
-
-### 2. 读取设计 / spec，确定 seam
-
-读设计方案（或 spec）和测试方案，复述"这次要实现什么、在哪些 seam 上测"给用户看。如果测试方案已经点名 seam，直接采用；如果没有（spec 输入或当前上下文输入），按下方「seam 纪律」和用户确认 seam。
-
-**在写任何测试之前**确认 seam。没有确认 seam 就开始写测试，等于在未定的边界上押注。
-
-### 3. 在确认的 seam 上跑 TDD 红→绿循环
-
-逐条垂直切片推进，每片一个红→绿循环：
-
-- **红**：先写一个失败的测试，描述这一片要获得的外部行为
-- **绿**：只写让这个测试通过的最小代码，不预演未来的测试、不加投机功能
-- 一片一片来，每片是响应上一片结果的**示踪弹**，而不是一次性把所有测试写完再实现
-
-循环的规则、反模式与 mock 纪律见 [references/tdd-loop.md](./references/tdd-loop.md)。**每个循环都适用**这些规则，循环前后都要对照，不是事后才看。
-
-**重构不在这个循环里**。红→绿只负责让行为出现；重构属于收尾的自审环节，不在实现循环中混做。
-
-### 4. 频繁类型检查 + 单测
-
-边写边跑：
-
-- 类型检查（或等价的编译 / lint）经常跑，不要攒到最后
-- 单个测试文件经常跑，确认这一片真的绿了
-- 不要在循环中跑全量测试套件——那是收尾的事
-
-### 5. 全量测试一次（收尾）
-
-所有切片完成、所有单测都绿之后，跑一次全量测试套件。这是本次运行里**唯一**一次跑全量。如果挂了，修到绿为止，但修的是实现，不是测试（除非测试本身写错了——那是反模式，按 reference 处理）。
-
-### 6. 自审 + 提交到实现分支
-
-提交前自审一遍 diff：
-
-- 每一行改动能否追溯到设计里的某条模块变更 / 测试用例？不能的删掉
-- 有没有顺手"改进"了设计没要求的东西？有就还原
-- 测试是不是都落在确认的 seam 上、只断言外部行为？有没有偷偷耦合了实现细节？
-
-自审通过后提交到**第 1 步建好的实现分支**。本技能**不开 PR、不关闭工单**。如果用户在调用时明确说"开个 PR"，那就开；否则止步于提交。
-
-## 完成标准
-
-当以下全部成立时，本次实现结束：
-
-- 每条设计里的模块变更都有对应的代码，且每条测试用例都有对应的测试
-- 全量测试套件跑过且为绿
-- 自审通过：diff 每一行都能追溯到设计
-- 实现落在基于最新 `origin/master` 的新分支上（本地与 origin 同名），且已经提交到该分支
-
-**不要**在提交后自行去关闭工单、勾选验收标准、或开 PR——那是用户的动作。提交完就停。
+5. Launch one **implementer** subagent, pointing it at the review report. It fixes the cited findings with the same red-green loop, commits on the current branch, and stops. It does not call the Skill tool with `implement` or `code-review`, and it does not spawn further agents. It returns only its commit SHAs and any finding it left unfixed, with the reason. If the review has no findings, skip this step.
