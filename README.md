@@ -39,7 +39,7 @@ Cursor auto-loads `.agents/skills/` (and `.claude/skills/`), so it is covered by
 | `daily-news` | Aggregate daily news from multiple sources (RSS / HN / Reddit / Twitter), dedupe, score, and push a report. |
 | `design` | Solution-design stage: reads propose's settled understanding, `.agents/GLOSSARY.md`, and `.agents/adr/`, then writes one design plus a test plan in that vocabulary. |
 | `download-audio` | Download audio from video sources (e.g. Bilibili) via a shell script. |
-| `implement` | Builds the current spec, issue, or conversation with test-driven development on a new branch from `master`. Then a code-reviewer subagent runs `code-review`, and an implementer subagent fixes the findings. Does not reopen the design. |
+| `implement` | Builds the current spec, issue, or conversation with test-driven development in a new worktree from `master`. Then a code-reviewer subagent runs `code-review`, and an implementer subagent fixes the findings. Does not reopen the design. |
 | `elementary-math` | Design first-principles, visual elementary mathematics lessons and print-quality Chinese PDF worksheets. |
 | `grill` | Interview primitive: grill a plan, decision, or idea in rounds until nothing is silently assumed. Model-invoked, so other skills call it. |
 | `propose` | User-invoked interview that calls `grill`, and writes resolved terms to `.agents/GLOSSARY.md` and hard decisions to `.agents/adr/` as they crystallise. |
@@ -59,7 +59,7 @@ Invoke a skill from your agent with `/obsidian` (or let the agent auto-trigger i
 | --- | --- | --- | --- |
 | 提案 | `propose` | 模糊的计划 | 共识；`.agents/GLOSSARY.md` 与 `.agents/adr/` |
 | 方案设计 | `design` | propose 的共识、术语表、ADR | 一份设计方案（领域与物理模型、模块变更、交互时序、接口契约）+ 测试方案 |
-| 实现 | `implement` | 当前 spec、issue，或对话里已经定下来的内容 | 当前分支上的提交。写完后由 code-reviewer 子 Agent 跑 `code-review`，再由 implementer 子 Agent 修审查指出的问题 |
+| 实现 | `implement` | 当前 spec、issue，或对话里已经定下来的内容 | 从 `master` 新建的 worktree 上的提交。写完后由 code-reviewer 子 Agent 跑 `code-review`，再由 implementer 子 Agent 修审查指出的问题 |
 
 三个技能都有明确边界：`propose` 负责把问题和术语问清楚，`design` 写出怎么实现的那一份方案，`implement` 把已经定下来的内容落成代码。`design` 不重新访谈，也不并列多份方案。没有 propose 的产出就跑 `/design` 时，它会先建议跑 `/propose`。
 
