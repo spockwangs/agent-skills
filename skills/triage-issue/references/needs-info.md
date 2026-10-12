@@ -1,12 +1,12 @@
 ## Needs-info template
 
 ```markdown
-**已明确**：
+**Confirmed:**
 
 - point 1
 - point 2
 
-**待确认**:
+**To be clarified:**
 
 - question 1
 - question 2

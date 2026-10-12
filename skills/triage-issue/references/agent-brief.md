@@ -1,40 +1,44 @@
 # Agent brief
 
-当一个issue诊断清楚准备实现后编写一个结构化评论，描述设计方案，以便agent以此为基础开始实现。
+Once an issue is fully triaged and ready to implement, write a structured comment describing the design so an agent can start
+implementing from it.
 
-## 原则
+## Principles
 
-### 持久性胜于精确
+### Durability over precision
 
-这个issue可能存在很长时间，在此期间代码会发生变化。所以这个描述即使在代码变化后仍然是有用的。
+The issue may stay open for a long time, and the code will change in the meantime. The brief must stay useful after the code
+changes.
 
-- 描述模块的接口、契约、领域模型的变化。
-- 不要引用文件路径和行号，这些会变化。
+- Describe changes to module interfaces, contracts, and the domain model.
+- Do not reference file paths or line numbers; they go stale.
 
-### 描述外在的行为，而不是内在的实现
+### Describe external behavior, not internal implementation
 
-描述系统应该做什么，不要描述如何做。agent会探索代码决定如何实现。
+Describe what the system should do, not how. The agent will explore the code and decide how to implement it.
 
-- **好例子:** 用户创建任务时可以指定审批人和有效期。
-- **坏例子:** 在 CreateTaskConfigRequest 中加一个字段表示审批人。
+- **Good:** When creating a task, the user can specify an approver and an expiry date.
+- **Bad:** Add an approver field to CreateTaskConfigRequest.
 
-### 明确成功标准
+### Explicit success criteria
 
-agent需要知道什么时候完成了。完成的标准必须是可验证的。
+The agent needs to know when it is done. Completion criteria must be verifiable.
 
 ## Template
 
+Write the comment in Chinese using this template.
+
 ```markdown
 **类型：** bug / 优化
-**总结:** 一句话描述应该做什么
+**总结：** 一句话描述应该做什么
 
-**当前的行为:**
-描述当前的现状。对于bug，这是复现bug的行为。对于优化，这是当前的现状。
+**当前的行为：**
+描述当前的现状。对于 bug，这是复现 bug 的行为。对于优化，这是当前的现状。
 
 **预期行为：**
 描述完成后预期的行为。明确边界情况和错误处理逻辑。
 
-**关键决策:**
+**关键决策：**
 - 领域模型的变化（如有）
 - 状态转移图的变化（如有）
 - 模块及其接口的变化
