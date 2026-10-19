@@ -54,10 +54,11 @@ Statuses:
    a verdict is possible, call the skill tool with `grill` to interview the user until the open decisions are settled. Then continue
    with the next step.
 
-5. **Send the verdict to the user and stop.** This step is done when the user has seen the verdict and replied to confirm or
-   asked for changes. The reply must state: category (`bug` / `enhancement`), proposed status, the full text of the comment to
-   post, and whether to close the issue. If the user asks for changes, revise and stop again. This step only reads the issue
-   tracker.
+5. **Send the verdict to the user and stop.** Write the verdict to some path outside the repo and present the path (*not
+   the content*) to the user. This step is done when the user has seen the verdict and replied to confirm or asked for
+   changes. The reply must state: category (`bug` / `enhancement`), proposed status, the full text of the comment to
+   post, and whether to close the issue. If the user asks for changes, revise and stop again. This step only reads the
+   issue tracker.
 
 6. **Write to the issue tracker after confirmation** (per the confirmed verdict):
    - Already implemented: post a comment explaining where it is implemented, mark it `resolved`, and close the issue.

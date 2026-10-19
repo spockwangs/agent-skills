@@ -15,7 +15,12 @@ Keep communication with both subagents sparse, in both directions. Brief them ma
 
 ## Process
 
-1. Create a worktree from `master` before writing any test or code. `git fetch origin`, then `git worktree add -b <branch> ../<repo>-<branch> origin/master`. Use the branch name the user gave, or a short name for this work. Replace `/` in the branch name with `-` in the directory name. `git push -u origin HEAD` from the worktree so the new branch tracks its remote. The fixed point for review is `origin/master`. Move into that worktree. Every later step runs there.
+1. Create a worktree from `master` before writing any test or code. `git fetch origin`, then `git worktree add -b
+   <branch> ../<repo>-<branch> origin/master`. Use the branch name the user gave, or a short name for this work. All
+   repo should use the same branch name. Replace `/` in the branch name with `-` in the directory name. `git push -u origin
+   HEAD` from the worktree so the new branch tracks its remote. The fixed point for review is `origin/master`. Present
+   the created worktrees of each repo to the user and move into that worktree. Every later step runs there. All
+   subsequent edits should be committed to this branch.
 
 2. Drive test-driven development by [tdd-loop.md](./references/tdd-loop.md), in the worktree. Confirm the seams with the user before the first test, then run red → green one seam at a time.
 
