@@ -22,7 +22,7 @@ Keep communication with both subagents sparse, in both directions. Brief them ma
    the created worktrees of each repo to the user and move into that worktree. Every later step runs there. All
    subsequent edits should be committed to this branch.
 
-2. Drive test-driven development by [tdd-loop.md](./references/tdd-loop.md), in the worktree. Confirm the seams with the user before the first test, then run red → green one seam at a time.
+2. Drive test-driven development by calling the Skill tool with `tdd`, in the worktree. Confirm the seams with the user before the first test, then run red → green one seam at a time.
 
 3. Run typechecking regularly, single test files regularly, and the full test suite once at the end, in the worktree.
 

@@ -40,6 +40,8 @@ Cursor auto-loads `.agents/skills/` (and `.claude/skills/`), so it is covered by
 | `design` | Solution-design stage: reads propose's settled understanding, `.agents/GLOSSARY.md`, and `.agents/adr/`, then writes one design plus a test plan in that vocabulary. |
 | `download-audio` | Download audio from video sources (e.g. Bilibili) via a shell script. |
 | `implement` | Builds the current spec, issue, or conversation with test-driven development in a new worktree from `master`. Then a code-reviewer subagent runs `code-review`, and an implementer subagent fixes the findings. Does not reopen the design. |
+| `implement-parallel` | For specs too big for one `implement` run: a planner subagent splits the spec into a dependency tree of tasks, confirmed by the user, then implementer subagents build the frontier in parallel in their own worktrees and everything lands on one integration branch, reviewed once at the end. |
+| `tdd` | The red to green loop as a standalone skill: what a good test is, seams to test at, where mocks go, the rules of the loop. Loaded by `implement` and by every implementer subagent in `implement-parallel`. |
 | `elementary-math` | Design first-principles, visual elementary mathematics lessons and print-quality Chinese PDF worksheets. |
 | `grill` | Interview primitive: grill a plan, decision, or idea in rounds until nothing is silently assumed. Model-invoked, so other skills call it. |
 | `propose` | User-invoked interview that calls `grill`, and writes resolved terms to `.agents/GLOSSARY.md` and hard decisions to `.agents/adr/` as they crystallise. |
