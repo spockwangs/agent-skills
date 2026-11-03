@@ -59,9 +59,7 @@ git -C <repo> checkout <integration>
 Landing, review and fixes all happen in that checkout, so it stays on the integration branch for the rest of the
 run: that is the cost of not having a worktree, and it is why step 1 insists on a clean tree.
 
-Task worktrees are the only worktrees, at `<run-dir>/worktrees/<repo>/<task>`. One caveat: **some repos care where
-they sit.** If a repo's build or tests reach for siblings by relative path, put its worktrees next to the repo
-(`../<repo>-<branch>`) instead, and note the exception in the plan.
+Task worktrees are the only worktrees and should be put somewhere required by the environment.
 
 ### 5. Launch the frontier
 
@@ -110,3 +108,7 @@ Leave the original checkout on the integration branch: switching it back is the 
 
 Keep `<run-dir>` until the user is done with it: it still holds the plan and the review report. Nothing cleans it
 for you, so prune abandoned run directories under `~/.agents/implement-parallel/` yourself.
+
+### 10. Summarize
+
+List the changes by modules.
