@@ -29,7 +29,7 @@ If there is no settled conversation to synthesize, tell the user to run `propose
 
 4. Write the draft spec to a file outside the repository: `/tmp/design-specs/<repo-name>-<short-slug>.md` (create the directory if needed). Keep the spec body out of the conversation. Give the user the file path as a link and ask them to review it there. Apply requested changes by editing that file, then point to it again.
 
-5. After the user confirms, publish the file's content to the project's issue tracker as ready. If the tracker or
+5. After the user confirms, publish the file's content verbatim to the project's issue tracker as ready. If the tracker or
    required label vocabulary is unknown, ask the user for that configuration.
 
 The confirmed spec is the input to implementation.
