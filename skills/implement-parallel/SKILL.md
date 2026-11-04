@@ -52,8 +52,8 @@ Confirm the integration branch name with the user: the same name in every repo. 
 original checkout. There is no integration worktree.
 
 ```bash
-git -C <repo> branch <integration> origin/master
-git -C <repo> checkout <integration>
+git -C <repo> checkout -b <integration> origin/master
+git -C <repo> push -u origin <integration>
 ```
 
 Landing, review and fixes all happen in that checkout, so it stays on the integration branch for the rest of the
