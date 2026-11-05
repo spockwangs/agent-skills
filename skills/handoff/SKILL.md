@@ -7,6 +7,8 @@ disable-model-invocation: true
 
 Write a handoff document summarising the current conversation so a fresh agent can continue the work. Save to the temporary directory of the user's OS (`$TMPDIR`, else `/tmp`; `%TEMP%` on Windows) - not the current workspace.
 
+Before writing the handoff, check whether `HEAD` or the working tree has code changes since the last green build/test run in this session. If unverified changes exist, record the exact unverified commit range or files prominently at the top of the handoff so the next session can verify them.
+
 Include a "suggested skills" section in the document, naming which skills the next agent should call the Skill tool for.
 
 Do not duplicate content already captured in other artifacts (specs, plans, ADRs, issues, commits, diffs). Reference them by path or URL instead.
