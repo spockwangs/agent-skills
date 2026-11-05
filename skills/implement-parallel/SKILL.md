@@ -10,8 +10,8 @@ planner subagent splits it into a **task tree** with blocking relationships betw
 build the frontier of tasks in parallel, and everything lands on a single **integration branch**.
 
 Communication to and from subagents should be sparse. Communicate primarily through **context pointers**: the plan file
-and task id, the worktree path, the spec section, the notes directory, the commits to read. Don't duplicate information
-already available via pointers.
+and task id, the worktree path, the spec section, the notes directory, the commits to read. Keep the external interface
+contract fixed, and let the implementer reshape the internal implementation and update the corresponding tests.
 
 ## Process
 

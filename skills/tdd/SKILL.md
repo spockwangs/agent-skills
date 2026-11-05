@@ -87,7 +87,7 @@ function processPayment(order) {
 - **Red before green.** Write the failing test first, then only enough code to pass it. Do not anticipate future tests or add speculative features.
 - **One slice at a time.** One seam, one test, one minimal implementation per cycle. Each test is a tracer bullet that responds to what the last cycle taught you.
 - **Vertical slices, never horizontal.** Do not write all tests first and then all implementation. Bulk tests verify imagined behavior: they test the shape of things rather than user-facing behavior, and they commit you to a test structure before you understand the implementation.
-- **No refactoring inside the loop.** Refactoring belongs to the review stage (`code-review`), not to the red to green cycle.
+- **Keep the interface contract fixed; internal implementation and its tests can change.** Do not alter the external interface contract inside the loop. Reshaping internal classes, helpers, or validation flow behind that contract is allowed, and tests coupled to those changed internals should be updated in lockstep.
 
 ## Anti-patterns
 
