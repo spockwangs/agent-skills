@@ -99,16 +99,15 @@ list_skills() {
   done
 }
 
-maybe_backup_skill() {
+check_existing_skill() {
   local path="$1" src="$2"
   [[ -e "$path" || -L "$path" ]] || return 0
   if [[ -L "$path" ]]; then
     local tgt; tgt="$(readlink "$path")"
     [[ "$tgt" == "$src" ]] && return 0
   fi
-  local bak="${path}.bak.$(date +%s)"
-  warn "target exists and is not ours, backing up: $path -> $bak"
-  mv "$path" "$bak"
+  warn "target exists and is not ours, overwriting: $path"
+  rm -rf "$path"
 }
 
 install_skill_one() {
@@ -121,7 +120,7 @@ install_skill_one() {
     return 0
   fi
   mkdir -p "$target_root" || return 1
-  maybe_backup_skill "$dest" "$src"
+  check_existing_skill "$dest" "$src"
   if [[ "$MODE" == "copy" ]]; then
     rm -rf "$dest"
     cp -R "$src" "$dest" || return 1
@@ -253,13 +252,11 @@ is_ours_md() {
   return 1
 }
 
-backup_if_needed_md() {
+check_existing_md() {
   local target="$1" source="$2"
   [[ -e "$target" || -L "$target" ]] || return 0
   if is_ours_md "$target" "$source"; then return 0; fi
-  local bak="${target}.bak.$(date +%s)"
-  warn "agents.md: target exists and is not ours, backing up: $target -> $bak"
-  mv "$target" "$bak"
+  warn "agents.md: target exists and is not ours, overwriting: $target"
 }
 
 install_agents_md_one() {
@@ -278,7 +275,7 @@ install_agents_md_one() {
     return 0
   fi
   mkdir -p "$(dirname "$target")" || return 1
-  backup_if_needed_md "$target" "$src"
+  check_existing_md "$target" "$src"
   # Remove any pre-existing target (incl. our own symlink to the source) before
   # writing, so a copy/import never writes *through* a symlink into the source.
   rm -f "$target"
@@ -333,7 +330,7 @@ run_agents_md_for_agent() {
   if [[ "$SCOPE" == "user" && "$ACTION" == "install" ]] &&
      { [[ -e "$target" ]] || [[ -L "$target" ]]; } &&
      ! is_ours_md "$target" "$AGENTS_MD"; then
-    warn "agents.md: $ACTION will replace global memory file $target (existing backed up)"
+    warn "agents.md: $ACTION will replace global memory file $target"
   fi
   if [[ "$ACTION" == "uninstall" ]]; then
     uninstall_agents_md_one "$agent" "$target"
@@ -389,8 +386,7 @@ Agents map to these skills / memory locations:
 Notes:
   - Project-scope AGENTS.md: only Claude Code needs a bridge (CLAUDE.md -> AGENTS.md);
     Cursor, CodeBuddy, Codex, and WorkBuddy read ./AGENTS.md natively.
-  - User-scope AGENTS.md replaces each tool's global memory file (existing files
-    are backed up to <name>.bak.<timestamp>).
+  - User-scope AGENTS.md replaces each tool's global memory file.
 
 Examples:
   install.sh                                  # user scope, all agents, skills + AGENTS.md
