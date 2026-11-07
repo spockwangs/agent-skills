@@ -53,6 +53,19 @@ Cursor auto-loads `.agents/skills/` (and `.claude/skills/`), so it is covered by
 
 Invoke a skill from your agent with `/obsidian` (or let the agent auto-trigger it based on the `description`).
 
+### Cross-agent invocation flags
+
+Claude-specific frontmatter (`user-invocable` and `disable-model-invocation`) does not control Codex. Each skill therefore has an `agents/openai.yaml` file that makes its Codex policy explicit:
+
+| Claude frontmatter | Codex equivalent |
+| --- | --- |
+| `disable-model-invocation: true` | `policy.allow_implicit_invocation: false` — Codex does not select the skill automatically, but `$skill-name` still works. |
+| `disable-model-invocation: false` or omitted | `policy.allow_implicit_invocation: true` |
+| `user-invocable: true` or omitted | Explicit `$skill-name` invocation is available (the Codex default). |
+| `user-invocable: false` | No Codex equivalent; Codex cannot disable explicit `$skill-name` invocation. |
+
+Because the installer links each complete skill directory, these Codex policies are installed with the skills without any extra installation step.
+
 ### 需求流水线：`propose` → `design` → `implement`
 
 `propose` 把计划访谈到共识，并把术语和关键决策写进 `.agents/`。`design` 只消费这份已经定下来的理解，写出**一份**设计。`implement` 把设计落成代码。
@@ -83,7 +96,8 @@ Invoke a skill from your agent with `/obsidian` (or let the agent auto-trigger i
    ```
 
 3. Optionally add `scripts/`, `references/`, and `assets/` next to `SKILL.md`.
-4. Keep `SKILL.md` under ~500 lines; move deep material into `references/`.
+4. Add `agents/openai.yaml` with `policy.allow_implicit_invocation` set to match whether Codex may invoke the skill automatically.
+5. Keep `SKILL.md` under ~500 lines; move deep material into `references/`.
 
 Because every tool points at the same `skills/` folder, the new skill is immediately available to Claude Code, Cursor, CodeBuddy, Codex, and WorkBuddy — no per-tool copying.
 
