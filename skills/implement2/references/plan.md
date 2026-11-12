@@ -10,15 +10,18 @@ The plan is the contract between the orchestrator and every subagent: nobody pas
 - Source: <intent path / spec path / issue reference / design doc path>
 - Integration branch: <the same branch name in every repo>
 - Key decisions:
-  - <domain models, data structures, state machines, module interfaces, function signatures>
+  - <domain models, class sketch, data structures, state machines, module interfaces, function signatures>
 
 ## Tasks
 
 ### T01 - <title>
+**Status:** pending
 **Blocked by:** none
 **Goal**: <the end-to-end behaviour this task makes work, in the user's terms>
-**Scope:** <Repos, file paths, models, data structures, state machines, interfaces>
-**Status:** pending
+**Scope:** <file paths to change or add>
+**Steps:**
+    1. xxx
+    2. xxx
 **Success criterion**
 - [ ] Acceptance criterion
 - [ ] Acceptance criterion

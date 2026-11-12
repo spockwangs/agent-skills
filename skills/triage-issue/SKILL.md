@@ -54,7 +54,7 @@ Statuses:
    a verdict is possible, call the skill tool with `grill` to interview the user until the open decisions are settled. Then continue
    with the next step.
 
-5. **Present the verdict to the user and wait.** Write the verdict to some path outside the repo and present the path (*not
+5. **Present the verdict to the user and wait.** Write the verdict to the session's transcript directory and present the path (*not
    the content*) to the user. This step is done when the user has seen the verdict and replied to confirm or asked for
    changes. If the user asks for changes, revise and stop again.
 
