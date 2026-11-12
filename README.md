@@ -34,6 +34,7 @@ Cursor auto-loads `.agents/skills/` (and `.claude/skills/`), so it is covered by
 
 | Skill      | Description |
 | ---------- | ----------- |
+| `agent-setup` | List the current agent's available models, ask the user to pick one per subagent role, and persist the role-to-model mapping to that agent's always-applied location (Codex `config.toml`, Cursor `.mdc`, or Claude `CLAUDE.md`). |
 | `analysis` | Requirements-analysis stage: sharpen a vague requirement into a shared spec (problem statement / requirements analysis / user stories) through relentless interviewing, while producing a domain model: `CONTEXT.md` glossary and ADRs. Stops at the spec — solution design is the next stage. |
 | `code-review` | Two-axis review of the diff between HEAD and a fixed point you name (commit / branch / tag / merge-base). Standards: does the code follow this repo's documented coding standards (plus a built-in Fowler smell baseline)? Spec: does it faithfully implement the originating issue / spec? Each axis runs in its own parallel sub-agent; the two reports are presented side by side, never merged or re-ranked. Read-only; does not fix anything. |
 | `daily-news` | Aggregate daily news from multiple sources (RSS / HN / Reddit / Twitter), dedupe, score, and push a report. |
