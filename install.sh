@@ -1,25 +1,20 @@
 #!/usr/bin/env bash
-# install.sh — install this repo's skills AND AGENTS.md into AI coding agents.
+# install.sh — install this repo's skills into AI coding agents.
 #
 # Supported agents: claude (Claude Code), cursor (Cursor),
 #                   codebuddy (Tencent CodeBuddy), codex (OpenAI Codex),
 #                   workbuddy (WorkBuddy).
 #
 # What it installs:
-#   1. Skills:  each ./skills/<name>/  ->  <agent>/skills/<name>   (universal SKILL.md format)
-#   2. AGENTS.md: the repo's ./AGENTS.md propagated to each tool's memory file:
-#      - project scope: only Claude Code needs a bridge (CLAUDE.md -> AGENTS.md);
-#        Cursor / CodeBuddy / Codex / WorkBuddy read AGENTS.md natively.
-#      - user scope: ~/.claude/CLAUDE.md, ~/.cursor/rules/agents.mdc,
-#        ~/.codebuddy/CODEBUDDY.md, ~/.codex/AGENTS.md, ~/.workbuddy/SOUL.md
+#   Skills: each ./skills/<name>/  ->  <agent>/skills/<name>   (universal SKILL.md format)
+#   AGENTS.md is not installed. --uninstall still removes rule files
+#   created by older versions of this script.
 #
 # Usage:
-#   ./install.sh                         # symlink, user scope, all agents, skills + AGENTS.md
+#   ./install.sh                         # symlink, user scope, all agents
 #   ./install.sh --project               # install into ./<agent>/... (commit to share)
 #   ./install.sh --agents claude,codex   # pick agents
 #   ./install.sh --copy                  # copy files instead of symlinking
-#   ./install.sh --no-skills             # only install AGENTS.md
-#   ./install.sh --no-agents-md          # only install skills
 #   ./install.sh --uninstall             # remove what this script installed
 #   ./install.sh --help
 #
@@ -45,8 +40,6 @@ SCOPE="user"            # user | project
 AGENTS=""               # space-separated list
 MODE="symlink"          # symlink | copy
 ACTION="install"        # install | uninstall
-DO_SKILLS=1
-DO_AGENTS_MD=1
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC_DIR="$REPO_ROOT/skills"
 AGENTS_MD="$REPO_ROOT/AGENTS.md"
@@ -191,29 +184,8 @@ run_skills_for_agent() {
   return $rc
 }
 
-# --- AGENTS.md helpers -------------------------------------------------------
-# Method to install AGENTS.md for (agent, scope, mode). "skip" = tool reads
-# AGENTS.md natively, nothing to do.
-agents_md_method() {
-  local agent="$1"
-  case "$SCOPE" in
-    project)
-      case "$agent" in
-        claude) [[ "$MODE" == "symlink" ]] && echo symlink || echo import ;;
-        cursor|codebuddy|codex|workbuddy) echo skip ;;
-      esac ;;
-    user)
-      case "$agent" in
-        claude)    [[ "$MODE" == "symlink" ]] && echo symlink || echo copy ;;
-        cursor)    echo mdc ;;                       # .mdc needs frontmatter, never a symlink
-        codebuddy) [[ "$MODE" == "symlink" ]] && echo symlink || echo copy ;;
-        codex)     [[ "$MODE" == "symlink" ]] && echo symlink || echo copy ;;
-        workbuddy) [[ "$MODE" == "symlink" ]] && echo symlink || echo copy ;;
-      esac ;;
-  esac
-}
-
-# Target file path for AGENTS.md install (empty when method=skip).
+# --- AGENTS.md legacy cleanup ------------------------------------------------
+# Target file path written by older versions of this script.
 agents_md_target() {
   local agent="$1"
   case "$SCOPE" in
@@ -252,53 +224,6 @@ is_ours_md() {
   return 1
 }
 
-check_existing_md() {
-  local target="$1" source="$2"
-  [[ -e "$target" || -L "$target" ]] || return 0
-  if is_ours_md "$target" "$source"; then return 0; fi
-  warn "agents.md: target exists and is not ours, overwriting: $target"
-}
-
-install_agents_md_one() {
-  local agent="$1" method="$2" target="$3"
-  local src="$AGENTS_MD"
-  # Safety: never overwrite the source file itself.
-  local rt rs
-  rt="$(resolve_path "$target")"; rs="$(resolve_path "$src")"
-  if [[ "$rt" == "$rs" ]]; then
-    log "  agents.md: target is the source file, skipping."
-    return 0
-  fi
-  # Already a symlink pointing at this repo — leave it alone.
-  if [[ "$method" == "symlink" && -L "$target" ]] && is_ours_md "$target" "$src"; then
-    printf "${c_dim}  - skip    %s (already linked to this repo)${c_reset}\n" "$target"
-    return 0
-  fi
-  mkdir -p "$(dirname "$target")" || return 1
-  check_existing_md "$target" "$src"
-  # Remove any pre-existing target (incl. our own symlink to the source) before
-  # writing, so a copy/import never writes *through* a symlink into the source.
-  rm -f "$target"
-  case "$method" in
-    symlink)
-      ln -sfn "$src" "$target" || return 1
-      ok "agents.md linked  $target -> $src" ;;
-    import)
-      printf '%s\n\n@AGENTS.md\n' "$MARKER" > "$target" || return 1
-      ok "agents.md bridge  $target (@AGENTS.md import)" ;;
-    copy)
-      { printf '%s\n\n' "$MARKER"; cat "$src"; } > "$target" || return 1
-      ok "agents.md copied  $target" ;;
-    mdc)
-      {
-        printf -- '---\ndescription: Project-wide agent guidelines installed from agent-skills\nalwaysApply: true\n---\n'
-        printf '%s\n\n' "$MARKER"
-        cat "$src"
-      } > "$target" || return 1
-      ok "agents.md cursor-rule  $target" ;;
-  esac
-}
-
 uninstall_agents_md_one() {
   local agent="$1" target="$2"
   if [[ -z "$target" ]]; then
@@ -320,23 +245,13 @@ uninstall_agents_md_one() {
 run_agents_md_for_agent() {
   local agent="$1"
   [[ -f "$AGENTS_MD" ]] || { warn "agents.md: $AGENTS_MD not found, skipping"; return 0; }
-  local method target
-  method="$(agents_md_method "$agent")"
+  local target
   target="$(agents_md_target "$agent")"
-  if [[ -z "$target" || "$method" == "skip" ]]; then
+  if [[ -z "$target" ]]; then
     log "  agents.md: $agent reads AGENTS.md natively here, nothing to do."
     return 0
   fi
-  if [[ "$SCOPE" == "user" && "$ACTION" == "install" ]] &&
-     { [[ -e "$target" ]] || [[ -L "$target" ]]; } &&
-     ! is_ours_md "$target" "$AGENTS_MD"; then
-    warn "agents.md: $ACTION will replace global memory file $target"
-  fi
-  if [[ "$ACTION" == "uninstall" ]]; then
-    uninstall_agents_md_one "$agent" "$target"
-  else
-    install_agents_md_one "$agent" "$method" "$target"
-  fi
+  uninstall_agents_md_one "$agent" "$target"
 }
 
 # --- Per-agent driver --------------------------------------------------------
@@ -344,10 +259,8 @@ run_for_agent() {
   local agent="$1" rc=0
   is_valid_agent "$agent" || die "unknown agent: $agent"
   log "agent=$agent scope=$SCOPE"
-  if [[ "$DO_SKILLS" -eq 1 ]]; then
-    run_skills_for_agent "$agent" || rc=1
-  fi
-  if [[ "$DO_AGENTS_MD" -eq 1 ]]; then
+  run_skills_for_agent "$agent" || rc=1
+  if [[ "$ACTION" == "uninstall" ]]; then
     run_agents_md_for_agent "$agent" || rc=1
   fi
   if [[ $rc -ne 0 ]]; then
@@ -359,40 +272,36 @@ run_for_agent() {
 # --- Arg parsing -------------------------------------------------------------
 usage() {
   cat <<'EOF'
-install.sh — install this repo's skills AND AGENTS.md into AI coding agents.
+install.sh — install this repo's skills into AI coding agents.
 
 Usage: install.sh [options]
 
 Options:
   --scope user|project   Where to install (default: user).
-                         user    -> ~/<agent-dir>/skills/ + global memory files
-                         project -> ./.<agent-dir>/skills/ + ./CLAUDE.md bridge
+                         user    -> ~/<agent-dir>/skills/
+                         project -> ./.<agent-dir>/skills/
   --agents LIST          Comma-separated subset of: claude,cursor,codebuddy,codex,workbuddy
                          (default: all five)
   --copy                 Copy files instead of symlinking (for FS without symlink
                          support, e.g. some Windows setups).
-  --no-skills            Do not install skills (AGENTS.md only).
-  --no-agents-md         Do not install AGENTS.md (skills only).
   --uninstall            Remove what this script previously installed.
   --help, -h             Show this help.
 
-Agents map to these skills / memory locations:
-  claude     .claude/skills   |  CLAUDE.md (project) / ~/.claude/CLAUDE.md
-  cursor     .agents/skills   |  AGENTS.md (project, native) / ~/.cursor/rules/agents.mdc
-  codebuddy  .codebuddy/skills|  AGENTS.md (project, native) / ~/.codebuddy/CODEBUDDY.md
-  codex      .agents/skills   |  AGENTS.md (project, native) / ~/.codex/AGENTS.md
-  workbuddy  .workbuddy/skills|  AGENTS.md (project, native) / ~/.workbuddy/SOUL.md
+Agents map to these skills locations:
+  claude     .claude/skills
+  cursor     .agents/skills
+  codebuddy  .codebuddy/skills
+  codex      .agents/skills
+  workbuddy  .workbuddy/skills
 
 Notes:
-  - Project-scope AGENTS.md: only Claude Code needs a bridge (CLAUDE.md -> AGENTS.md);
-    Cursor, CodeBuddy, Codex, and WorkBuddy read ./AGENTS.md natively.
-  - User-scope AGENTS.md replaces each tool's global memory file.
+  - AGENTS.md is not installed. --uninstall still removes rule files created by
+    older versions of this script.
 
 Examples:
-  install.sh                                  # user scope, all agents, skills + AGENTS.md
+  install.sh                                  # user scope, all agents
   install.sh --project                        # vendor into current repo (commit to share)
   install.sh --project --agents claude,codex
-  install.sh --no-skills --scope user         # just global AGENTS.md memory
   install.sh --uninstall --agents cursor
 EOF
 }
@@ -418,8 +327,6 @@ while [[ $# -gt 0 ]]; do
     --agents)       parse_agents "$2"; shift 2 ;;
     --copy)         MODE="copy"; shift ;;
     --uninstall)    ACTION="uninstall"; shift ;;
-    --no-skills)    DO_SKILLS=0; shift ;;
-    --no-agents-md) DO_AGENTS_MD=0; shift ;;
     --help|-h)      usage; exit 0 ;;
     *)              die "unknown option: $1 (try --help)" ;;
   esac
@@ -427,28 +334,19 @@ done
 
 [[ "$SCOPE" == "user" || "$SCOPE" == "project" ]] || die "--scope must be user or project"
 [[ "$MODE" == "symlink" || "$MODE" == "copy" ]] || die "invalid mode"
-[[ $DO_SKILLS -eq 1 || $DO_AGENTS_MD -eq 1 ]] || die "nothing to do (--no-skills and --no-agents-md both set)"
 AGENTS="${AGENTS# }"; AGENTS="${AGENTS% }"
 [[ -n "$AGENTS" ]] || AGENTS="$ALL_AGENTS"
 
 # --- Main --------------------------------------------------------------------
 log "repo: $REPO_ROOT"
 log "action=$ACTION scope=$SCOPE mode=$MODE agents=$AGENTS"
-log "install: $( [[ $DO_SKILLS -eq 1 ]] && echo skills )$( [[ $DO_SKILLS -eq 1 && $DO_AGENTS_MD -eq 1 ]] && echo ' + ' )$( [[ $DO_AGENTS_MD -eq 1 ]] && echo agents-md )"
+log "install: skills"
 echo
 
 # Configure git hooks
 git config core.hooksPath .githooks
 
-if [[ $DO_SKILLS -eq 1 && ! -d "$SRC_DIR" ]]; then
-  warn "skills directory not found at $SRC_DIR; skipping skills"
-  DO_SKILLS=0
-fi
-if [[ $DO_AGENTS_MD -eq 1 && ! -f "$AGENTS_MD" ]]; then
-  warn "AGENTS.md not found at $AGENTS_MD; skipping agents-md"
-  DO_AGENTS_MD=0
-fi
-[[ $DO_SKILLS -eq 1 || $DO_AGENTS_MD -eq 1 ]] || die "nothing to install (missing skills/ and AGENTS.md)"
+[[ -d "$SRC_DIR" ]] || die "skills directory not found at $SRC_DIR"
 
 for agent in $AGENTS; do
   run_for_agent "$agent" || HAD_FAILURE=1
@@ -461,5 +359,5 @@ if [[ $HAD_FAILURE -ne 0 ]]; then
 fi
 ok "done ($ACTION): $AGENTS ($SCOPE scope)"
 if [[ "$MODE" == "symlink" && "$SCOPE" == "project" ]]; then
-  printf "${c_dim}Tip: symlinks/bridges are committed to git; commit them so teammates get the same setup.${c_reset}\n"
+  printf "${c_dim}Tip: symlinks are committed to git; commit them so teammates get the same setup.${c_reset}\n"
 fi
