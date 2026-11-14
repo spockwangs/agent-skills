@@ -27,10 +27,6 @@ Open a todo list with one entry per phase before launching anything.
 2. Launch one **planner** subagent using the configured model. It is read-only with respect to the repo. Brief it with
    the source pointer. Tell it to:
    - read the source and explore the codebase as needed;
-   - modular design and information hiding principle: encode invariants in types and data structures instead of
-     scattering across files and functions. If some rule will be changed only one place should be changed.
-   - deep module principle: a narrow interface with substantial hidden implementation is preferred than many interfaces
-     with simple implementation.
    - slice vertically by use case: every task is a tracer bullet, verifiable on its own, and free to touch several repos;
    - maximise the frontier and pin every name that crosses a task boundary;
    - do not spawn further subagents;
@@ -59,7 +55,7 @@ git -C <repo> worktree add -b <integration>-t01 <worktree-dir>/<integration>-t01
 
 Each implementer subagent:
     - confirms its worktree is based on the integration branch before starting, and resets onto it if not;
-    - calls the Skill tool with `tdd` to do the task;
+    - calls skill `/tdd` and `/coding-guidelines` to do the task;
     - merges the integration branch tip into its own branch before reporting done
 
 3. Once an **implementer** subagent finishes, merge its branch into the integration branch of every repo the task
