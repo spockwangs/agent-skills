@@ -34,6 +34,7 @@ Cursor auto-loads `.agents/skills/` (and `.claude/skills/`), so it is covered by
 
 | Skill      | Description |
 | ---------- | ----------- |
+| `agent-setup` | List the current agent's available models, ask the user to pick one per subagent role, and persist the role-to-model mapping to that agent's always-applied location (Codex `config.toml`, Cursor `.mdc`, or Claude `CLAUDE.md`). |
 | `analysis` | Requirements-analysis stage: sharpen a vague requirement into a shared spec (problem statement / requirements analysis / user stories) through relentless interviewing, while producing a domain model: `CONTEXT.md` glossary and ADRs. Stops at the spec — solution design is the next stage. |
 | `code-review` | Two-axis review of the diff between HEAD and a fixed point you name (commit / branch / tag / merge-base). Standards: does the code follow this repo's documented coding standards (plus a built-in Fowler smell baseline)? Spec: does it faithfully implement the originating issue / spec? Each axis runs in its own parallel sub-agent; the two reports are presented side by side, never merged or re-ranked. Read-only; does not fix anything. |
 | `daily-news` | Aggregate daily news from multiple sources (RSS / HN / Reddit / Twitter), dedupe, score, and push a report. |
@@ -106,7 +107,7 @@ Because every tool points at the same `skills/` folder, the new skill is immedia
 Use the bundled `install.sh` to link (or copy) every skill under `skills/` into each agent's expected directory. It is idempotent, backs up anything it didn't create, and refuses to touch the source tree.
 
 ```bash
-# default: symlink, user scope (skills + AGENTS.md), all agents
+# default: symlink, user scope, all agents
 ./install.sh
 
 # project scope: writes ./.claude/skills, ./.codebuddy/skills, ./.agents/skills, ./.workbuddy/skills (commit to share)
@@ -126,29 +127,9 @@ Run `./install.sh --help` for the full reference. Each skill is installed per-sk
 
 **Windows note:** symlinks may need Developer Mode enabled; otherwise use `--copy`.
 
-## Installing AGENTS.md (agent memory / instructions)
+## AGENTS.md
 
-`install.sh` also propagates the repo's `AGENTS.md` to each tool's instructions file, so all five agents share one source of truth. Use `--no-skills` / `--no-agents-md` to opt out of either part.
-
-| Tool | Project scope | User scope |
-| --- | --- | --- |
-| Claude Code | `./CLAUDE.md` bridge → `AGENTS.md` (Claude reads CLAUDE.md, not AGENTS.md) | `~/.claude/CLAUDE.md` |
-| Cursor | reads `./AGENTS.md` natively (nothing to do) | `~/.cursor/rules/agents.mdc` (wrapped with frontmatter) |
-| CodeBuddy | reads `./AGENTS.md` natively (fallback to `CODEBUDDY.md`) | `~/.codebuddy/CODEBUDDY.md` |
-| Codex | reads `./AGENTS.md` natively | `~/.codex/AGENTS.md` (note: `~/.codex`, not `~/.agents`) |
-| WorkBuddy | reads `./AGENTS.md` natively | `~/.workbuddy/SOUL.md` |
-
-```bash
-./install.sh --no-skills                 # user scope: global memory for all agents
-./install.sh --no-skills --scope project # project scope: just the CLAUDE.md bridge
-./install.sh --no-skills --copy          # copy content instead of symlinking
-./install.sh --uninstall --no-skills     # remove installed memory files
-```
-
-Notes:
-- **Project scope** only creates the `CLAUDE.md` bridge for Claude Code; Cursor, CodeBuddy, Codex, and WorkBuddy already read `./AGENTS.md` natively.
-- **User scope** replaces each tool's *global* memory file — existing files are backed up to `<name>.bak.<timestamp>` (the installer warns before replacing). Cursor's global rules need a `.mdc` wrapper (frontmatter is required), so that file is always generated rather than symlinked, even in symlink mode.
-- In `--copy` mode, Claude Code's project bridge uses an `@AGENTS.md` import (single source of truth); user-scope copies embed the content directly (with a marker comment so the installer can recognize its own files).
+The repo's `AGENTS.md` is not installed. `--uninstall` still removes instruction files created by older versions of `install.sh`.
 
 ## Using this repo in your projects
 
@@ -157,7 +138,7 @@ Notes:
 ```bash
 git clone <this-repo> ~/agent-skills
 cd ~/agent-skills
-./install.sh                 # user scope, all agents, skills + AGENTS.md
+./install.sh                 # user scope, all agents
 # or: ./install.sh --scope project   # from within a project to vendor into it
 ```
 
