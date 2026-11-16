@@ -1,33 +1,89 @@
 ---
 name: implement
-description: "Implement the current spec, issue, or conversation in a worktree from master, with test-driven development, then have a code-reviewer subagent run code-review and an implementer subagent fix the findings."
-user-invocable: true
+description: "Implement a feature according to a spec by splitting it into a task tree and running multiple subagents in parallel, each in its own git worktree, all merged onto one integration branch."
 disable-model-invocation: true
 ---
 
-Implement the work already described in the current spec, issue, or conversation. Do not interview, and do not reopen the design.
+Implement the work already described in the current spec, issue, or conversation which is too big for a single agent. A
+planner subagent splits it into a **task tree** with blocking relationships between them, and implementer subagents
+build the frontier of tasks in parallel, and everything lands on a single **integration branch**.
 
-If the user names a source, use that one. Otherwise use a spec, then an issue, then the conversation. State which source you are implementing before you write code. If they pass an issue reference, fetch it and state its title. If the reference is ambiguous, ask. If the plan lives only in the conversation, say so and implement that. Do not search for a spec file that is not there.
+Communication to and from subagents should be sparse. Communicate primarily through **context pointers**: the plan file
+and task id, the worktree path, the spec section, the notes directory, the commits to read. Don't duplicate information
+already available via pointers.
 
-When the source contradicts itself or an existing ADR, stop and put the conflict in front of the user.
+## Start
 
-Keep communication with both subagents sparse, in both directions. Brief them mainly with **context pointers**: the worktree path, the spec path or issue reference, the review report path, research notes, the fixed point, and the commits to read. Leave out anything those pointers already hold. A source that lives only in the conversation has no pointer, so write it to a file outside the repo and pass that path.
+Open a todo list with one entry per phase before launching anything.
 
-## Process
+1. Plan
+2. Implement
+3. Review
+4. Summary
 
-1. Create a worktree from `master` before writing any test or code. `git fetch origin`, then `git worktree add -b
-   <branch> ../<repo>-<branch> origin/master`. Use the branch name the user gave, or a short name for this work. All
-   repo should use the same branch name. Replace `/` in the branch name with `-` in the directory name. `git push -u origin
-   HEAD` from the worktree so the new branch tracks its remote. The fixed point for review is `origin/master`. Present
-   the created worktrees of each repo to the user and move into that worktree. Every later step runs there. All
-   subsequent edits should be committed to this branch.
+## Phase 1: Plan
 
-2. Drive test-driven development by calling the Skill tool with `tdd`, in the worktree. Confirm the seams with the user before the first test, then run red → green one seam at a time.
+1. Make sure the workspace is clean and latest from origin.
+2. Launch one **planner** subagent using the configured model. It is read-only with respect to the repo. Brief it with
+   the source pointer. Tell it to:
+   - read the source and explore the codebase as needed;
+   - slice vertically by use case: every task is a tracer bullet, verifiable on its own, and free to touch several repos;
+   - maximise the frontier and pin every name that crosses a task boundary;
+   - do not spawn further subagents;
+   - write the plan to the file `plan.md` under this session's transcript directory in the format in [references/plan.md](./references/plan.md);
+   - reply to the main thread the plan path, the task count, and the tree depth.
+3. Confirm with the user about the plan. Iterate by re-briefing the planner for a structural change until the user approves the plan.
 
-3. Run typechecking regularly, single test files regularly, and the full test suite once at the end, in the worktree.
+## Phase 2: Implement
 
-4. Commit the work on the worktree's branch. `code-review` reads `git diff <fixed-point>...HEAD`, so the review sees nothing until this commit exists. The fixed point is `origin/master`.
+1. Create the integration branch for each repo. Landing, review and fixes all happen in that checkout, so it stays on
+the integration branch for the rest of the run.
 
-5. Launch one **code-reviewer** subagent with the worktree as its working directory. Brief it to call the Skill tool with `code-review`. It reviews. It does not edit code, and it does not call `implement`. It writes its report to `/tmp/code-reviews/<repo-name>-<short-sha>.md` and returns only that path and the finding count for each axis.
+```bash
+git -C <repo> checkout -b <integration> origin/master
+git -C <repo> push -u origin <integration>
+```
 
-6. Launch one **implementer** subagent with the worktree as its working directory, pointing it at the review report. It fixes the cited findings with the same red-green loop, commits on the worktree's branch, and stops. It does not call the Skill tool with `implement` or `code-review`, and it does not spawn further agents. It returns only its commit SHAs and any finding it left unfixed, with the reason. If the review has no findings, skip this step.
+2. Launch a **implementer** subagent in the background for each task using the configured model. Each subagent gets the
+plan path and its task id. You own the plan and subagents should not edit it. A task that touches several repos gets one
+worktree per repo (find `<worktree-dir>` specified by the project and if not found, use the `.worktrees` under the repo
+root) , all on the same branch name, based on the integration branch:
+
+```bash
+git -C <repo> worktree add -b <integration>-t01 <worktree-dir>/<integration>-t01 <integration>
+```
+
+Each implementer subagent:
+    - confirms its worktree is based on the integration branch before starting, and resets onto it if not;
+    - calls skill `/tdd` and `/coding-guidelines` to do the task;
+    - merges the integration branch tip into its own branch before reporting done
+
+3. Once an **implementer** subagent finishes, merge its branch into the integration branch of every repo the task
+touched, from that repo's original checkout, which is on the integration branch:
+
+```bash
+git -C <repo> merge --ff-only <integration>-t01
+```
+
+Update the plan's `Status` fields and recompute the frontier. Launch everything newly unblocked in parallel. Repeat until every task has finished.
+
+## Phase 3: Review
+
+Once all tasks are complete, launch one **code-reviewer** subagent with skill `code-review` on the integration branch
+using the configured model, with the spec path as the input and the repo's original checkout as its working
+directory. It writes its report to `review.md` at the session's transcript directory and returns only that path and the
+finding count per axis. Fix all issues raised by code review in a single **implementer subagent**, working in the same
+checkout and pointing it at that report.
+
+## Phase 4: Summary
+
+1. Remove every worktree of the run, then let git forget the ones already gone:
+
+```bash
+git -C <repo> worktree remove <worktree-dir>/<integration>-t01
+git -C <repo> worktree prune
+```
+
+Leave the original checkout on the integration branch: switching it back is the user's call.
+
+2. List the changes by module and why, and the proof that it works.
