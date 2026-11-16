@@ -1,0 +1,25 @@
+# File globs -> guideline documents, resolved by SKILL.md in this directory.
+#
+# Later entries win when two rules conflict, so narrow scopes (tests,
+# generated, vendored) go after the general entry for the same language.
+#
+# Both `*.ext` and `**/*.ext` are listed on purpose: implementations disagree
+# on whether `**/` matches top-level files, and a top-level source file must
+# not silently get no guidelines.
+guidelines:
+  - globs:
+      - "*.c"
+      - "*.cc"
+      - "*.cpp"
+      - "*.cxx"
+      - "*.h"
+      - "*.hpp"
+      - "*.hxx"
+      - "**/*.c"
+      - "**/*.cc"
+      - "**/*.cpp"
+      - "**/*.cxx"
+      - "**/*.h"
+      - "**/*.hpp"
+      - "**/*.hxx"
+    doc: references/cpp.md

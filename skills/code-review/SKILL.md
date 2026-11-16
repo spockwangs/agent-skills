@@ -1,7 +1,7 @@
 ---
 name: code-review
 description: |
-  代码审查：对 HEAD 与某个固定点（commit / 分支 / tag / merge-base）之间的 diff 做双轴审查——Standards（代码是否遵循本仓库已记录的编码规范）与 Spec（代码是否忠实实现了来源 issue / spec 的要求）。两轴各跑一个并行子 Agent，互不污染上下文，最后并排汇报、不合并不重排。
+  代码审查：对 HEAD 与某个固定点（commit / 分支 / tag / merge-base）之间的 diff 做双轴审查——Standards（代码是否遵循本仓库已记录的编码规范与语言级规范）与 Spec（代码是否忠实实现了来源 issue / spec 的要求）。两轴各跑一个并行子 Agent，互不污染上下文，最后并排汇报、不合并不重排。
   触发关键词：代码审查、code review、review、审查 since X、审查分支、审查 PR。
 user-invocable: true
 ---
@@ -10,7 +10,7 @@ user-invocable: true
 
 对 `HEAD` 与用户指定的**固定点**之间的 diff 做双轴审查：
 
-- **Standards**：代码是否遵循本仓库**已记录的**编码规范？
+- **Standards**：代码是否遵循本仓库**已记录的**编码规范与语言级规范（`coding-guidelines`）？
 - **Spec**：代码是否忠实实现了来源 issue / spec 的要求？
 
 两轴各跑一个**并行子 Agent**，互不污染对方的上下文，最后由本技能汇总并排呈现。
@@ -19,7 +19,7 @@ user-invocable: true
 
 本技能只做一件事：**审查一个既成 diff，并按两轴分别报告问题**。
 
-- **属于本技能**：固定 diff 范围、找 spec 来源、找 standards 来源、起两个并行子 Agent、并排汇总
+- **属于本技能**：固定 diff 范围、找 spec 来源、找 standards 来源（仓库规范 + `coding-guidelines` 语言级规范）、起两个并行子 Agent、并排汇总
 - **不属于本技能**：修代码（那是 `implement` 的活）、猎 bug（空指针 / 竞态 / 越界等——那是工具内置审查的活，不是本技能）、审查整个代码库的漂移（那是架构治理的活）
 
 本技能**只看一个 diff**，只读不改。它不修发现的问题，也不替你决定先修哪个。
@@ -52,13 +52,25 @@ user-invocable: true
 3. 仓库里的 spec / design 文件：`docs/specs/`、`specs/`、`.scratch/`，以及 `analysis` / `design` 阶段的产出文件（按 spec 模板 / 设计方案模板写出的文档）。
 4. 都没有就问用户 spec 在哪。用户说没有，则 **Spec 子 Agent 跳过**，最终报告里写"无可用 spec"。
 
-### 3. 找 standards 来源 + smell baseline
+### 3. 找 standards 来源 + coding-guidelines + smell baseline
 
-找仓库里一切记录"代码该怎么写"的东西，比如 `CODING_STANDARDS.md`、`CONTRIBUTING.md`、`AGENTS.md` 里的编码段落。
+这一步由本技能自己在起子 Agent **之前**做完，结果贴进简报——子 Agent 没有可靠的途径自己读到这些材料。三层来源的优先级是固定的，冲突时高者赢：
 
-在仓库记录的任何规范之上，Standards 轴**始终**携带下方的 **smell baseline**：一组固定的 Fowler 代码坏味（《Refactoring》第 3 章），即使仓库什么都没记录也适用。两条规则约束它：
+1. **仓库已记录的规范**——最高。找仓库里一切记录"代码该怎么写"的东西，比如 `CODING_STANDARDS.md`、`CONTRIBUTING.md`、`AGENTS.md` 里的编码段落。
+2. **`coding-guidelines`**——仓库没记录该语言时适用。
+3. **smell baseline**——最弱，永远是判断题。
 
-- **仓库优先。** 已记录的仓库规范永远赢；当仓库规范认可了 baseline 会标记的东西时，压住这条坏味。
+**加载 `coding-guidelines` 要显式做，不要指望它按 description 自动触发：**
+
+1. `git diff --name-only <固定点>...HEAD` 拿到本次 diff 的文件清单。
+2. 读 `coding-guidelines` 的 `index.yaml`，用这批文件匹配 glob。
+3. 只读匹配到的 `references/*.md`，并记下每份文档覆盖哪些路径。一个都没匹配到就记"无可用语言级规范"，不要跳过整个 Standards 轴。
+
+仓库规范与 `coding-guidelines` 冲突时**仓库赢**，并在报告里点名这条冲突，而不是当成违规。
+
+在以上任何来源之上，Standards 轴**始终**携带下方的 **smell baseline**：一组固定的 Fowler 代码坏味（《Refactoring》第 3 章），即使仓库什么都没记录、也没有语言级规范也适用。两条规则约束它：
+
+- **仓库优先。** 仓库规范认可了 baseline 会标记的东西时，压住这条坏味。
 - **永远是判断题。** 每条坏味是一个带标签的启发式（"疑似 Feature Envy"），绝不是硬违规。和这里的任何规范一样，工具已经强制的全部跳过。
 
 smell baseline 见 [references/smell-baseline.md](./references/smell-baseline.md)。**起 Standards 子 Agent 时，必须把 baseline 全文贴进它的简报**——子 Agent 没有别的途径读到它。
@@ -68,8 +80,10 @@ smell baseline 见 [references/smell-baseline.md](./references/smell-baseline.md
 **Standards 子 Agent 简报**应包含：
 
 - 完整的 diff 命令和提交列表。
-- 第 3 步找到的 standards 来源文件清单，**加上第 3 步的 smell baseline 全文**。
-- 简报：「**按重要性从高到低排序**报告：(a) diff 里每一处违反已记录规范的地方——引用规范（文件 + 那条规则）；(b) 你看出的任何 baseline 坏味——点名并引用 hunk。区分硬违规与判断题：已记录规范的违反可以是硬违规，但 baseline 坏味永远是判断题，且已记录的仓库规范压过 baseline。工具已经强制的全部跳过。排序时硬违规高于判断题；同级别内按影响面大小排。**不要调用 `/code-review` 或再起任何子 Agent：本次审查直接做。** 400 字以内。」
+- 第 3 步找到的仓库 standards 来源文件清单。
+- 第 3 步从 `coding-guidelines` 解析出的语言级规范**全文**，并注明每份文档覆盖哪些路径；没匹配到就写"无可用语言级规范"。
+- 第 3 步的 smell baseline 全文。
+- 简报：「**按重要性从高到低排序**报告：(a) diff 里每一处违反规范的地方——仓库规范引用（文件 + 那条规则），语言级规范引用文档名；(b) 你看出的任何 baseline 坏味——点名并引用 hunk。区分硬违规与判断题：仓库规范和语言级规范的违反可以是硬违规，但 baseline 坏味永远是判断题。冲突时仓库规范压过语言级规范，语言级规范压过 baseline——按胜出的那一层判断，不要把冲突本身报成违规。工具已经强制的全部跳过。排序时硬违规高于判断题；同级别内按影响面大小排。**不要调用 `/code-review` 或再起任何子 Agent：本次审查直接做。** 400 字以内。」
 
 **Spec 子 Agent 简报**应包含：
 
@@ -93,7 +107,8 @@ spec 缺失则跳过 Spec 子 Agent，并在最终报告里注明。
 
 - 报告是 `## Standards` 和 `## Spec` 两个分开的块，不是一个合并的列表
 - 每个块内部按重要性从高到低排序（硬违规 / 缺失或做错的需求在前，判断题 / 范围蔓延 / 实现瑕疵在后）
-- 每条 Standards 发现都点了名：要么是仓库某个文件里的一条规则，要么是十二条坏味之一并附 hunk 引用
+- 每条 Standards 发现都点了名：要么是仓库某个文件里的一条规则，要么是一份 `coding-guidelines` 语言级规范，要么是十二条坏味之一并附 hunk 引用
+- 已按 diff 的文件类型解析过 `coding-guidelines`，或在报告里写明"无可用语言级规范"
 - 每条 Spec 发现都引用了 spec 的对应行
 - 收尾总结给了每轴各自最严重的问题（各轴列表首条），且**拒绝**跨轴选总赢家
 - 没有可用 spec 时，Spec 块写明"无可用 spec"，而不是从代码里反推需求

@@ -31,10 +31,16 @@ The plan is the contract between the orchestrator and every subagent: nobody pas
 ...
 ```
 
-`Repos` is metadata for the orchestrator: it creates one worktree per repo all on the same branch name, and lands that branch in each. It does not bound
-what the slice may touch.
+## Design principles
 
-## Rules
+- **Model driven design**. Encodes the business rules and invariants in data structures instead of scattering multiple
+  places. If two places change for the same reason, they should be in the same place.
+- **Deep module principle**. A narrow interface with substantial hidden implementation is preferred than many interfaces
+  with simple implementation.
+- **Dependency rule**. Instable modules should depend on stable modules, not vice versa. For example, the modules
+  responsible for UI, IO should depend on the modules responsible for business rules.
+
+## Task decomposition rules
 
 1. **Slice vertically, by use case.** A task is a tracer bullet: one narrow but complete path through every layer it needs (schema, API, UI, tests), verifiable on its own. Never slice by repo or by layer. If a use case crosses three repos, one task crosses three repos, because splitting it there is what makes each half unverifiable alone. The test: "what can I demo when this is done?" A task with no answer is not a vertical slice.
 2. **Sized to one fresh context window.** An implementer that has never seen the spec must be able to finish it. If a task looks like hours of agent work, split it by use case, not by repo.
