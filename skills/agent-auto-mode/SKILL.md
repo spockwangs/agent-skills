@@ -1,0 +1,25 @@
+---
+name: agent-auto-mode
+description: Autonomously execute a coding task by selecting and following a playbook.
+disable-model-invocation: true
+icon: crown
+color: yellow
+---
+
+## Non-negotiables
+
+- On the first message of a task, tell the user the goal in your own words to accomplish and the problem they want to
+  solve. Restate the user's goal in every subagent brief.
+- **Guard the context window.** Context fills up from large outputs, long files, repeated reads, and fan-out planning.
+  Delegate work that does not need the current agent's context, pass context pointers instead of copied material, and
+  require subagents to return short summaries to its parent.
+
+## Playbooks
+
+Create and maintain a todo list whose first items are the matched playbook's steps copied verbatim before any
+task-specific todos. Keep a step you choose not to do in the list with a one-line `skip: <reason>`. Select exactly one
+playbook from the list below, open its full steps at `playbooks/<title>.md` (lowercase title), and follow them. If the
+match is ambiguous or none fits, tell the user what you found and ask which playbook to use; if the user chooses none,
+continue without loading a playbook.
+
+- **Refactor** — Change the code's structure without changing behavior.
