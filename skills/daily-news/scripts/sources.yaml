@@ -33,6 +33,16 @@ sources:
     name: Simon Willison's Weblog
     url: https://simonwillison.net/atom/entries/
   - type: rss
+    name: OpenAI
+    url: https://openai.com/news/rss.xml
+    category: ai
+  # Anthropic 官方未提供 RSS（/news/rss.xml 等均 404），改由 openrss.org 抓取
+  # https://www.anthropic.com/news 页面并生成 feed。官方若上线 feed 应替换此处。
+  - type: rss
+    name: Anthropic
+    url: https://openrss.org/feed/www.anthropic.com/news
+    category: ai
+  - type: rss
     name: 打喷嚏
     url: https://www.dapenti.com/blog/rss2.asp
 

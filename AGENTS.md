@@ -60,3 +60,10 @@ For multi-step tasks, state a brief plan:
 ```
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+# model configuration: one line per role.
+# Format: <model-id> [reasoning=<effort>]. Model ids must exist in the harness model
+# catalog; reasoning effort is a separate setting, not part of the id.
+implementer: tencent/deepseek-v4.1-flash reasoning=max
+code-reviewer: tencent/deepseek-v4-pro-ioa reasoning=max
+planner: tencent/deepseek-v4-pro-ioa reasoning=max

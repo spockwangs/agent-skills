@@ -12,7 +12,7 @@ Write per-role model settings in a file that will be applied by current agent fo
 - Cursor: `~/.cursor/rules/models.mdc`
 - Claude Code: `~/.claude/rules/models.md`
 - CodeBuddy: `~/.codebuddy/rules/models.mdc`
-- Other harnesses: merge with `~/.agents/AGENTS.md` which will be loaded into every session.
+- Other harnesses: merge with `~/.agents/AGENTS.md` as a separate section which will be loaded into every session.
 
 ## Steps
 
