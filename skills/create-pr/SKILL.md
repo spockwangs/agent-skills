@@ -1,6 +1,6 @@
 ---
 name: create-pr
-description: "Create a pull request for a repo via available tools. Use when creating a PR, or pull request.
+description: Create a pull request for a repo via available tools. Use when creating a PR, or pull request.
 user-invocable: true
 disable-model-invocation: true
 ---

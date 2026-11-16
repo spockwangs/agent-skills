@@ -17,3 +17,5 @@ Apply the following rules when editing C++ codes.
   `_test` and put in the same directory.
 - If a symbol belongs to implementation detail put it in the implementation file. If a function does not access any
   member of a class, put it in the anonymous namespace of the implementation file.
+- Use integer types with deterministic width such as `int32_t`, `int64_t` instead of `int`, `long`, `long long`.
+- Use C++ style cast instead C style cast.
