@@ -14,6 +14,15 @@ color: yellow
   Delegate work that does not need the current agent's context, pass context pointers instead of copied material, and
   require subagents to return short summaries to its parent.
 
+## Reply
+
+Reply should be terse and clean, easy to read. Every claim should cite evidence (i.e. file:lines, or a link).
+
+## Comments
+
+Only comment surprises that the user can't infer from the code. Don't comment what the code has already said. Comment
+what the code does in headers and why the code does this way in implementations.
+
 ## Playbooks
 
 Create and maintain a todo list whose first items are the matched playbook's steps copied verbatim before any
@@ -22,4 +31,5 @@ playbook from the list below, open its full steps at `playbooks/<title>.md` (low
 match is ambiguous or none fits, tell the user what you found and ask which playbook to use; if the user chooses none,
 continue without loading a playbook.
 
-- **Refactor** — Change the code's structure without changing behavior.
+- **Feature** New behavior or changed behavior from a intent, proposal or issue.
+- **Refactor** Change the code's structure without changing behavior.
