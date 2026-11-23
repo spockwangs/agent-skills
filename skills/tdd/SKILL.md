@@ -1,7 +1,7 @@
 ---
 name: tdd
 description: "Test-driven development: the red to green loop. Use when building a feature or fixing a bug test-first, when the user asks for tests before code, or when a task brief tells you to build with tdd."
-user-invocable: true
+user-invocable: false
 disable-model-invocation: false
 ---
 

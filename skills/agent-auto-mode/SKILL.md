@@ -25,11 +25,10 @@ what the code does in headers and why the code does this way in implementations.
 
 ## Playbooks
 
-Create and maintain a todo list whose first items are the matched playbook's steps copied verbatim before any
-task-specific todos. Keep a step you choose not to do in the list with a one-line `skip: <reason>`. Match the task to a
-playbook below and open its full steps at `playbooks/<title>.md` (lowercase title). Copy its steps verbatim. If the
-match is ambiguous or none fits, tell the user what you found and ask which playbook to use; if the user chooses none,
-continue without loading a playbook.
+Open a todo list whose first items are the matched playbook's steps before any task-specific todos. Keep a step you
+choose not to do in the list with a one-line `skip: <reason>`. Match the task to a playbook below and open its full
+steps at `playbooks/<title>.md` (lowercase title). Copy its steps verbatim. If the match is ambiguous or none fits, tell
+the user what you found and ask which playbook to use; if the user chooses none, continue without loading a playbook.
 
 - **Feature** New behavior or changed behavior from a intent, proposal or issue.
 - **Refactor** Change the code's structure without changing behavior.

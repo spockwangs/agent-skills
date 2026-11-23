@@ -1,7 +1,6 @@
 ---
 name: implement
 description: "Implement a feature according to a spec by splitting it into a task tree and running multiple subagents in parallel, each in its own git worktree, all merged onto one integration branch."
-disable-model-invocation: true
 ---
 
 Implement the work already described in the current spec, issue, or conversation which is too big for a single agent. A
