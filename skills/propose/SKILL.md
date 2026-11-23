@@ -1,8 +1,6 @@
 ---
 name: propose
 description: Interviews the user relentlessly about an idea or a requirement until a shared understanding is reached. Use when the user wants to propose a change, stress-test a plan against a codebase, or settle domain language before specifying it.
-user-invocable: true
-disable-model-invocation: true
 ---
 
 Call the Skill tool with "grill" and run that interview.

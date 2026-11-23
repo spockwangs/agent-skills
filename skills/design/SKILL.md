@@ -1,8 +1,6 @@
 ---
 name: design
 description: "Turn the settled proposal into one design spec to be implemented."
-user-invocable: true
-disable-model-invocation: true
 ---
 
 Turn the settled proposal (from current conversation or a file) into one design spec to be implemented. If there is no
