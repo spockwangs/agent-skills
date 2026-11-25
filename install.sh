@@ -3,7 +3,7 @@
 #
 # Supported agents: claude (Claude Code), cursor (Cursor),
 #                   codebuddy (Tencent CodeBuddy), codex (OpenAI Codex),
-#                   workbuddy (WorkBuddy).
+#                   workbuddy (WorkBuddy), tclaude (TClaude).
 #
 # What it installs:
 #   Skills: each ./skills/<name>/  ->  <agent>/skills/<name>   (universal SKILL.md format)
@@ -29,11 +29,12 @@ agent_dir() {
     codebuddy) printf '.codebuddy' ;;
     codex)     printf '.agents' ;;
     workbuddy) printf '.workbuddy' ;;
+    tclaude)   printf '.tclaude' ;;
     *)         return 1 ;;
   esac
 }
 is_valid_agent() { agent_dir "$1" >/dev/null 2>&1; }
-ALL_AGENTS="claude cursor codebuddy codex workbuddy"
+ALL_AGENTS="claude cursor codebuddy codex workbuddy tclaude"
 
 # --- Defaults ----------------------------------------------------------------
 SCOPE="user"            # user | project
@@ -280,8 +281,8 @@ Options:
   --scope user|project   Where to install (default: user).
                          user    -> ~/<agent-dir>/skills/
                          project -> ./.<agent-dir>/skills/
-  --agents LIST          Comma-separated subset of: claude,cursor,codebuddy,codex,workbuddy
-                         (default: all five)
+  --agents LIST          Comma-separated subset of: claude,cursor,codebuddy,codex,workbuddy,tclaude
+                         (default: all six)
   --copy                 Copy files instead of symlinking (for FS without symlink
                          support, e.g. some Windows setups).
   --uninstall            Remove what this script previously installed.
@@ -293,6 +294,7 @@ Agents map to these skills locations:
   codebuddy  .codebuddy/skills
   codex      .agents/skills
   workbuddy  .workbuddy/skills
+  tclaude    .tclaude/skills
 
 Notes:
   - AGENTS.md is not installed. --uninstall still removes rule files created by
