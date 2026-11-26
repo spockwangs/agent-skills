@@ -3,9 +3,9 @@ name: implement
 description: "Implement a feature according to a spec by splitting it into a task tree and running multiple subagents in parallel, each in its own git worktree, all merged onto one integration branch."
 ---
 
-Implement the work already described in the current spec, issue, or conversation which is too big for a single agent. A
-planner subagent splits it into a **task tree** with blocking relationships between them, and implementer subagents
-build the frontier of tasks in parallel, and everything lands on a single **integration branch**.
+Implement the work already described in the current spec, issue, or conversation. A planner subagent splits it into a
+**task tree** with blocking relationships between them, and implementer subagents build the frontier of tasks in
+parallel, and everything lands on a single **integration branch**.
 
 Communication to and from subagents should be sparse. Communicate primarily through **context pointers**: the plan file
 and task id, the worktree path, the spec section, the notes directory, the commits to read. Don't duplicate information
