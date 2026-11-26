@@ -1,121 +1,115 @@
 ---
 name: code-review
 description: |
-  代码审查：对 HEAD 与某个固定点（commit / 分支 / tag / merge-base）之间的 diff 做双轴审查——Standards（代码是否遵循本仓库已记录的编码规范与语言级规范）与 Spec（代码是否忠实实现了来源 issue / spec 的要求）。两轴各跑一个并行子 Agent，互不污染上下文，最后并排汇报、不合并不重排。
-  触发关键词：代码审查、code review、review、审查 since X、审查分支、审查 PR。
+  Code review: review the diff between HEAD and a fixed point (commit / branch / tag / merge-base) along two axes — Standards (does the code follow the coding standards and language-level guidelines recorded in this repository?) and Spec (does the code faithfully implement the requirements of the source issue / spec?). Each axis runs in its own parallel subagent so their contexts don't pollute each other; the two reports are presented side by side, never merged or re-ranked.
+  Trigger keywords: code review, review, review since X, review branch, review PR.
 user-invocable: true
 ---
 
-# 代码审查（Code Review）
+# Code Review
 
-对 `HEAD` 与用户指定的**固定点**之间的 diff 做双轴审查：
+Review the diff between `HEAD` and a **fixed point** specified by the user along two axes:
 
-- **Standards**：代码是否遵循本仓库**已记录的**编码规范与语言级规范（`coding-guidelines`）？
-- **Spec**：代码是否忠实实现了来源 issue / spec 的要求？
+- **Standards**: does the code follow the coding standards and language-level guidelines **recorded in this repository** (`coding-guidelines`)?
+- **Spec**: does the code faithfully implement the requirements of the source issue / spec?
 
-两轴各跑一个**并行子 Agent**，互不污染对方的上下文，最后由本技能汇总并排呈现。
+Each axis runs in its own **parallel subagent** so their contexts don't pollute each other; this skill then aggregates and presents both reports side by side.
 
-## 本技能的范围
+## Scope of this skill
 
-本技能只做一件事：**审查一个既成 diff，并按两轴分别报告问题**。
+This skill does one thing: **review a given diff and report problems along the two axes.**
 
-- **属于本技能**：固定 diff 范围、找 spec 来源、找 standards 来源（仓库规范 + `coding-guidelines` 语言级规范）、起两个并行子 Agent、并排汇总
-- **不属于本技能**：修代码（那是 `implement` 的活）、猎 bug（空指针 / 竞态 / 越界等——那是工具内置审查的活，不是本技能）、审查整个代码库的漂移（那是架构治理的活）
+- **In scope**: pinning the diff range, locating the spec source, locating the standards sources (repository standards + `/coding-guidelines` language-level guidelines), spawning the two parallel subagents, aggregating side by side
+- **Out of scope**: fixing code (that's `implement`'s job), bug hunting (null pointers / races / out-of-bounds — that's the harness's built-in review, not this skill), auditing whole-codebase drift (that's architecture governance)
 
-本技能**只看一个 diff**，只读不改。它不修发现的问题，也不替你决定先修哪个。
+This skill **only looks at one diff**, read-only. It does not fix what it finds, nor does it decide for you what to fix first.
 
-## 为什么是两轴
+## Why two axes
 
-一个改动可以过一轴、挂另一轴：
+A change can pass one axis and fail the other:
 
-- 代码处处合规，但实现的是错的东西 → **Standards 过、Spec 挂**
-- 代码正好做了 issue 要求的事，但违反了项目约定 → **Spec 过、Standards 挂**
+- The code is compliant everywhere but implements the wrong thing → **Standards pass, Spec fail**
+- The code does exactly what the issue asked for but violates project conventions → **Spec pass, Standards fail**
 
-分开报告，是为了不让通过的那轴遮住挂掉的那轴。所以两轴**永不跨轴合并、永不跨轴重排**：每轴各自按重要性从高到低排序，最终汇总只给每轴各自最严重的一个问题（即各轴列表首条），**不跨轴选一个总赢家**——那正是分离要阻止的事。
+Reporting separately keeps the passing axis from hiding the failing one. Therefore the two axes are **never merged across axes, never re-ranked across axes**: each axis is sorted internally by importance from high to low, and the final summary gives only the single most severe finding of each axis (i.e. the first item of each axis's list) — **never pick one overall winner across axes**; that is exactly what the separation exists to prevent.
 
-## 流程
+## Procedure
 
-### 1. 固定固定点
+### 1. Pin the fixed point
 
-用户说的固定点是什么就是什么（commit SHA、分支名、tag、`main`、`HEAD~5` 等）。**用户没指定就问，不要猜。**
+Whatever fixed point the user names is the fixed point (commit SHA, branch name, tag, `main`, `HEAD~5`, etc.). **If the user didn't specify one, ask — don't guess.**
 
-一次性捕获 diff 命令：`git diff <固定点>...HEAD`（三点，比较的是 merge-base）。同时记下提交列表：`git log <固定点>..HEAD --oneline`。
+Capture the diff command once: `git diff <fixed-point>...HEAD` (three dots — compares against the merge-base). Also record the commit list: `git log <fixed-point>..HEAD --oneline`.
 
-往下走之前，先确认固定点能解析（`git rev-parse <固定点>`）且 diff 非空。坏的引用或空 diff 要**在这里**失败，而不是在两个并行子 Agent 起来之后才失败。
+Before going further, verify the fixed point resolves (`git rev-parse <fixed-point>`) and the diff is non-empty. A bad ref or an empty diff must fail **here**, not after the two parallel subagents have been spawned.
 
-### 2. 找 spec 来源
+### 2. Locate the spec source
 
-按这个顺序找来源 spec：
+Look for the source spec in this order:
 
-1. 提交信息里的 issue 引用（`#123`、`Closes #45`、GitLab `!67` 等）。若本仓库配置过 issue tracker 工作流就按它取；没有就跳过这条。
-2. 用户作为参数传进来的路径。
-3. 仓库里的 spec / design 文件：`docs/specs/`、`specs/`、`.scratch/`，以及 `analysis` / `design` 阶段的产出文件（按 spec 模板 / 设计方案模板写出的文档）。
-4. 都没有就问用户 spec 在哪。用户说没有，则 **Spec 子 Agent 跳过**，最终报告里写"无可用 spec"。
+1. Issue references in commit messages (`#123`, `Closes #45`, GitLab `!67`, etc.). If this repo has an issue-tracker workflow configured, follow it; otherwise skip this item.
+2. A path passed in by the user as an argument.
+3. Spec / design files in the repo: `docs/specs/`, `specs/`, `.scratch/`, and artifacts from the `design` phases (documents written from the spec template).
+4. If none found, ask the user where the spec is. If the user says there is none, the **Spec subagent is skipped**, and the final report states "no spec available".
 
-### 3. 找 standards 来源 + coding-guidelines + smell baseline
+### 3. Locate standards sources + coding-guidelines + smell baseline
 
-这一步由本技能自己在起子 Agent **之前**做完，结果贴进简报——子 Agent 没有可靠的途径自己读到这些材料。三层来源的优先级是固定的，冲突时高者赢：
+This step is done by this skill itself **before** spawning the subagents, and the results are pasted into the briefing — subagents have no reliable way to read these materials on their own. The three layers of sources have a fixed priority; on conflict the higher one wins:
 
-1. **仓库已记录的规范**——最高。找仓库里一切记录"代码该怎么写"的东西，比如 `CODING_STANDARDS.md`、`CONTRIBUTING.md`、`AGENTS.md` 里的编码段落。
-2. **`coding-guidelines`**——仓库没记录该语言时适用。
-3. **smell baseline**——最弱，永远是判断题。
+1. **Repository-recorded standards** — highest. Find everything in the repo that records "how code should be written", e.g. `CODING_STANDARDS.md`, `CONTRIBUTING.md`, coding sections in `AGENTS.md`.
+2. **Skill `/coding-guidelines`** — applies when the repo has nothing recorded for that language.
+3. **Smell baseline** — weakest; always a judgment call.
 
-**加载 `coding-guidelines` 要显式做，不要指望它按 description 自动触发：**
+When repository standards conflict with `coding-guidelines`, **the repository wins**, and the conflict is named in the report rather than treated as a violation.
 
-1. `git diff --name-only <固定点>...HEAD` 拿到本次 diff 的文件清单。
-2. 读 `coding-guidelines` 的 `index.yaml`，用这批文件匹配 glob。
-3. 只读匹配到的 `references/*.md`，并记下每份文档覆盖哪些路径。一个都没匹配到就记"无可用语言级规范"，不要跳过整个 Standards 轴。
+On top of any of the above sources, the Standards axis **always** carries the **smell baseline** below: a fixed set of Fowler code smells (*Refactoring*, Chapter 3), applicable even when the repo records nothing and there are no language-level guidelines. Two rules constrain it:
 
-仓库规范与 `coding-guidelines` 冲突时**仓库赢**，并在报告里点名这条冲突，而不是当成违规。
+- **Repository first.** When a repo standard endorses something the baseline would flag, suppress that smell.
+- **Always a judgment call.** Each smell is a labeled heuristic ("suspected Feature Envy"), never a hard violation. As with any standard here, skip everything a tool already enforces.
 
-在以上任何来源之上，Standards 轴**始终**携带下方的 **smell baseline**：一组固定的 Fowler 代码坏味（《Refactoring》第 3 章），即使仓库什么都没记录、也没有语言级规范也适用。两条规则约束它：
+The smell baseline lives in [references/smell-baseline.md](./references/smell-baseline.md). **When spawning the Standards subagent, the full text of the baseline must be pasted into its briefing** — the subagent has no other way to read it.
 
-- **仓库优先。** 仓库规范认可了 baseline 会标记的东西时，压住这条坏味。
-- **永远是判断题。** 每条坏味是一个带标签的启发式（"疑似 Feature Envy"），绝不是硬违规。和这里的任何规范一样，工具已经强制的全部跳过。
+### 4. Spawn the two subagents in parallel
 
-smell baseline 见 [references/smell-baseline.md](./references/smell-baseline.md)。**起 Standards 子 Agent 时，必须把 baseline 全文贴进它的简报**——子 Agent 没有别的途径读到它。
+**The Standards subagent briefing should include:**
 
-### 4. 并行起两个子 Agent
+- The complete diff command and commit list.
+- The list of repo standards source files found in step 3.
+- The **full text** of the language-level guidelines resolved from `/coding-guidelines` in step 3, noting which paths each document covers; if nothing matched, write "no language-level guidelines available".
+- The full text of the smell baseline from step 3.
+- The brief: "**Report sorted by importance, highest first**: (a) every place in the diff that violates a standard — cite the repo standard (file + the specific rule) or, for language-level guidelines, cite the document name; (b) any baseline smells you see — name them and cite the hunk. Distinguish hard violations from judgment calls: violations of repo standards and language-level guidelines may be hard violations, but baseline smells are always judgment calls. On conflict, repo standards override language-level guidelines, and language-level guidelines override the baseline — judge by the winning layer; don't report the conflict itself as a violation. Skip everything a tool already enforces. Sort hard violations above judgment calls; within the same tier, sort by blast radius. **Do not invoke `/code-review` or spawn any further subagents: do this review directly.** 400 words max."
 
-**Standards 子 Agent 简报**应包含：
+**The Spec subagent briefing should include:**
 
-- 完整的 diff 命令和提交列表。
-- 第 3 步找到的仓库 standards 来源文件清单。
-- 第 3 步从 `coding-guidelines` 解析出的语言级规范**全文**，并注明每份文档覆盖哪些路径；没匹配到就写"无可用语言级规范"。
-- 第 3 步的 smell baseline 全文。
-- 简报：「**按重要性从高到低排序**报告：(a) diff 里每一处违反规范的地方——仓库规范引用（文件 + 那条规则），语言级规范引用文档名；(b) 你看出的任何 baseline 坏味——点名并引用 hunk。区分硬违规与判断题：仓库规范和语言级规范的违反可以是硬违规，但 baseline 坏味永远是判断题。冲突时仓库规范压过语言级规范，语言级规范压过 baseline——按胜出的那一层判断，不要把冲突本身报成违规。工具已经强制的全部跳过。排序时硬违规高于判断题；同级别内按影响面大小排。**不要调用 `/code-review` 或再起任何子 Agent：本次审查直接做。** 400 字以内。」
+- The diff command and commit list.
+- The path to the spec or its fetched content.
+- The brief: "**Report sorted by importance, highest first**: (a) requirements the spec demands but the diff is missing or only half-implements; (b) behavior present in the diff that the spec never asked for (scope creep); (c) requirements that look implemented but look implemented wrong. Every finding must cite the corresponding spec lines. Sort order: missing/wrongly-implemented requirements above scope creep, scope creep above implementation blemishes; within the same tier, sort by impact on users / the contract. **Do not invoke `/code-review` or spawn any further subagents: do this review directly.** 400 words max."
 
-**Spec 子 Agent 简报**应包含：
+If there is no spec, skip the Spec subagent and note that in the final report.
 
-- diff 命令和提交列表。
-- spec 的路径或抓取到的内容。
-- 简报：「**按重要性从高到低排序**报告：(a) spec 要求但 diff 里缺失或只做了一半的需求；(b) diff 里出现但 spec 没要求的行为（范围蔓延）；(c) 看起来实现了但实现看起来不对的需求。每条发现都要引用 spec 的对应行。排序时：缺失/做错的需求高于范围蔓延，范围蔓延高于实现瑕疵；同级别内按对用户/契约的影响面大小排。**不要调用 `/code-review` 或再起任何子 Agent：本次审查直接做。** 400 字以内。」
+> Both briefs explicitly forbid recursively invoking `/code-review` and spawning further subagents. This is a known failure mode that spirals out of control (a subagent rediscovers this skill and fans out layer after layer), so it's blocked at the briefing layer rather than relying on the harness as a backstop.
 
-spec 缺失则跳过 Spec 子 Agent，并在最终报告里注明。
+### 5. Aggregate
 
-> 两条简报都显式禁止递归调用 `/code-review` 与再派生子 Agent。这是已知会失控的坑（子 Agent 重新发现本技能并层层 fan-out），从简报层就堵死，而不是靠 harness 兜底。
+Place the two reports verbatim (or lightly cleaned up) under the headings `## Standards` and `## Spec`, **each internally sorted by importance, highest first**. **Do not merge across axes, do not re-rank across axes** — the two axes are deliberately separated (see "Why two axes"). The intra-axis ordering is done by each axis's subagent when it reports; aggregation only does light cleanup, never re-ranks within an axis.
 
-### 5. 汇总
+Close with a one-line summary: the total number of findings per axis, and the single most severe finding **of each axis** (i.e. the first item of each axis's list, if any). **Do not pick an overall winner across axes** — that re-ranking is exactly what the separation exists to prevent.
 
-把两份报告原样（或轻度清理）放在 `## Standards` 和 `## Spec` 标题下，**各自内部按重要性从高到低排序**。**不要跨轴合并、不要跨轴重排**——两轴刻意分离（见「为什么是两轴」）。每轴内部排序由该轴子 Agent 在报告时就排好；汇总时只做轻度清理，不重排轴内顺序。
+## Definition of done
 
-结尾给一行总结：每轴的发现总数，以及**每轴各自**最严重的一个问题（即各轴列表的第一条，如果有）。**不要跨轴选总赢家**——那正是分离要阻止的重排。
+The review is complete when all of the following hold:
 
-## 完成标准
+- The report is two separate blocks, `## Standards` and `## Spec` — not one merged list
+- Each block is internally sorted by importance, highest first (hard violations / missing-or-wrong requirements first, judgment calls / scope creep / implementation blemishes after)
+- Every Standards finding names its source: either a rule in a specific repo file, a `coding-guidelines` language-level document, or one of the twelve smells with a hunk citation
+- `coding-guidelines` was resolved against the diff's file types, or the report states "no language-level guidelines available"
+- Every Spec finding cites the corresponding spec lines
+- The closing summary gives each axis's own most severe finding (the first item of each axis's list) and **refuses** to pick an overall winner across axes
+- When no spec is available, the Spec block says "no spec available" instead of reverse-engineering requirements from the code
 
-当以下全部成立时，本次审查结束：
+## Boundaries and caveats
 
-- 报告是 `## Standards` 和 `## Spec` 两个分开的块，不是一个合并的列表
-- 每个块内部按重要性从高到低排序（硬违规 / 缺失或做错的需求在前，判断题 / 范围蔓延 / 实现瑕疵在后）
-- 每条 Standards 发现都点了名：要么是仓库某个文件里的一条规则，要么是一份 `coding-guidelines` 语言级规范，要么是十二条坏味之一并附 hunk 引用
-- 已按 diff 的文件类型解析过 `coding-guidelines`，或在报告里写明"无可用语言级规范"
-- 每条 Spec 发现都引用了 spec 的对应行
-- 收尾总结给了每轴各自最严重的问题（各轴列表首条），且**拒绝**跨轴选总赢家
-- 没有可用 spec 时，Spec 块写明"无可用 spec"，而不是从代码里反推需求
-
-## 边界与注意事项
-
-- **只看已提交的 diff**：`<固定点>...HEAD` 是三点 diff，从 merge-base 量起，**不含**已暂存和工作区的改动。要审查未提交的工作，先提交，再审查，再 amend 或加 fixup。
-- **发现是假设，不是证据**：本技能把两份报告原样或轻度清理后汇总，并不逐条回查文件。一条发现可能引错位置或夸大影响。动手前读它附的引用。
-- **不收敛**：修了会暴露新的面，且 Standards 轴的判断题那半在多次运行间不确定。不要循环跑到"干净"为止——它不会干净。把一次 pass 当成线索清单，动手有引用支撑的那些，然后停。
-- **最好在新会话里跑**：写代码的同一会话里审查自己，是带着塑造代码的全部假设在审查，正是独立审查者不会有的上下文。从干净会话里跑 `/code-review` 才是诚实的版本。
+- **Only committed diffs**: `<fixed-point>...HEAD` is a three-dot diff, measured from the merge-base — it does **not** include staged or working-tree changes. To review uncommitted work, commit first, review, then amend or add a fixup.
+- **Findings are hypotheses, not evidence**: this skill aggregates the two reports verbatim or lightly cleaned; it does not re-verify each one against the files. A finding may cite the wrong location or exaggerate impact. Read its citations before acting on it.
+- **Non-convergent**: fixing findings exposes new surface, and the judgment-call half of the Standards axis is non-deterministic across runs. Don't loop until "clean" — it never goes clean. Treat one pass as a list of leads, act on the ones with citations behind them, then stop.
+- **Best run in a fresh session**: reviewing your own code in the same session that wrote it means reviewing with all the assumptions that shaped the code — exactly the context an independent reviewer wouldn't have. Running `/code-review` from a clean session is the honest version.

@@ -1,27 +1,27 @@
-# Smell Baseline（Standards 轴的底线）
+# Smell Baseline (the floor of the Standards axis)
 
-`code-review` 的 Standards 轴在仓库已记录的规范之上，始终携带这组固定的 Fowler 代码坏味（《Refactoring》第 3 章）。即使仓库什么规范都没记录，它也适用。
+The Standards axis of `code-review` always carries this fixed set of Fowler code smells (*Refactoring*, Chapter 3) on top of the standards recorded in the repository. It applies even when the repo records no standards at all.
 
-两条规则约束它：
+Two rules constrain it:
 
-- **仓库优先。** 已记录的仓库规范永远赢；当仓库规范认可了 baseline 会标记的东西时，压住这条坏味。
-- **永远是判断题。** 每条坏味是一个带标签的启发式（"疑似 Feature Envy"），绝不是硬违规。工具已经强制的全部跳过。
+- **Repository first.** Recorded repo standards always win; when a repo standard endorses something the baseline would flag, suppress that smell.
+- **Always a judgment call.** Each smell is a labeled heuristic ("suspected Feature Envy"), never a hard violation. Skip everything a tool already enforces.
 
-每条坏味写成 *是什么* → *怎么修*；拿它去对照 diff：
+Each smell is written as *what it is* → *how to fix*; hold it against the diff:
 
-- **Mysterious Name（神秘命名）**：函数、变量或类型的名字不揭示它做什么、装什么。→ 改名；若想不出诚实的名字，说明设计本身浑浊。
-- **Duplicated Code（重复代码）**：同一种逻辑形状在本次改动的多个 hunk 或文件里反复出现。→ 抽出共享形状，两处都调它。
-- **Feature Envy（依恋情结）**：一个方法伸手进另一个对象的数据比进自己的还多。→ 把方法搬到它羡慕的那份数据上。
-- **Data Clumps（数据泥团）**：同样的几个字段或参数总是一起出行（一个想出生的类型）。→ 捆成一个类型，传那个类型。
-- **Primitive Obsession（基本类型偏执）**：用一个基本类型或字符串顶替一个本该有自己类型的领域概念。→ 给这个概念一个自己的小类型。
-- **Repeated Switches（重复分支）**：对同一个类型的同一种 `switch` / `if` 阶梯在本次改动里反复出现。→ 用多态替换，或两处共享一张映射。
-- **Shotgun Surgery（霰弹式修改）**：一个逻辑改动逼着 diff 在多个文件里四处散改。→ 把一起变的东西收进一个模块。
-- **Divergent Change（发散式变化）**：一个文件或模块因为好几个不相干的原因被改。→ 拆开，让每个模块只为一个原因变。
-- **Speculative Generality（投机性泛化）**：为 spec 没有的需求加了抽象、参数或钩子。→ 删掉；内联回去，直到出现真实需求。
-- **Message Chains（消息链）**：长长的 `a.b().c().d()` 导航，调用方不该依赖这串。→ 把这串走法藏到第一个对象上的一个方法里。
-- **Middle Man（中间人）**：一个类或函数几乎只是转发。→ 砍掉，直接调真正的目标。
-- **Refused Bequest（拒绝馈赠）**：子类或实现者忽略或覆盖了继承来的大部分东西。→ 放弃继承，改用组合。
+- **Mysterious Name**: the name of a function, variable, or type doesn't reveal what it does or holds. → Rename it; if you can't think of an honest name, the design itself is murky.
+- **Duplicated Code**: the same logical shape recurs across multiple hunks or files of this change. → Extract the shared shape and call it from both places.
+- **Feature Envy**: a method reaches into another object's data more than into its own. → Move the method onto the data it envies.
+- **Data Clumps**: the same few fields or parameters always travel together (a type that wants to be born). → Bundle them into a type and pass that type.
+- **Primitive Obsession**: a primitive or string stands in for a domain concept that deserves its own type. → Give the concept its own small type.
+- **Repeated Switches**: the same `switch` / `if` ladder over the same type recurs within this change. → Replace with polymorphism, or share one mapping between the sites.
+- **Shotgun Surgery**: one logical change forces the diff to scatter edits across many files. → Gather what changes together into one module.
+- **Divergent Change**: one file or module gets changed for several unrelated reasons. → Split it so each module changes for only one reason.
+- **Speculative Generality**: abstractions, parameters, or hooks added for needs the spec doesn't have. → Delete them; inline back until a real need appears.
+- **Message Chains**: long `a.b().c().d()` navigation the caller shouldn't depend on. → Hide the traversal behind a method on the first object.
+- **Middle Man**: a class or function that does little more than forward. → Cut it out and call the real target directly.
+- **Refused Bequest**: a subclass or implementer ignores or overrides most of what it inherits. → Drop the inheritance; use composition instead.
 
-## 用法
+## Usage
 
-起 Standards 子 Agent 时，把本文件全文贴进它的简报——子 Agent 没有别的途径读到它。子 Agent 拿每条坏味去对照 diff 的每个 hunk，命中就点名（"疑似 Feature Envy"）并引用 hunk，附上 *怎么修*。
+When spawning the Standards subagent, paste the full text of this file into its briefing — the subagent has no other way to read it. The subagent holds each smell against every hunk of the diff; on a hit it names it ("suspected Feature Envy"), cites the hunk, and attaches the *how to fix*.

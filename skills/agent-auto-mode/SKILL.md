@@ -21,7 +21,7 @@ Reply should be terse and clean, easy to read. Every claim should cite evidence 
 ## Comments
 
 Only comment surprises that the user can't infer from the code. Don't comment what the code has already said. Comment
-the contract in headers and what the code does and why in implementation files.
+the contract at declarations and what the code does and why at implementations.
 
 ## Playbooks
 
