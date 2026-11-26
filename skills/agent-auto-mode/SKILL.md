@@ -1,6 +1,6 @@
 ---
 name: agent-auto-mode
-description: Autonomously execute a coding task by selecting and following a playbook.
+description: Autonomously execute a coding task by matching a playbook and following its steps.
 disable-model-invocation: true
 icon: crown
 color: yellow
@@ -25,11 +25,13 @@ the contract in headers and what the code does and why in implementation files.
 
 ## Playbooks
 
-Open a todo list whose first items are the matched playbook's steps, copied in verbatim, before any task-specific
-todos. Keep a step you choose not to do in the list with a one-line `skip: <reason>`. Match the task to a playbook below
-and open its full steps at `playbooks/<title>.md` (lowercase title). Copy its steps verbatim. If the match is ambiguous
-or none fits, tell the user what you found and ask the user which playbook to use; if the user chooses none, continue
-without loading a playbook.
+1. Match the task to a playbook below.
+2. If exactly only one matches open a todo list whose first items are the steps of matched playbook at
+   `playbooks/<title>.md` (lowercase title). Copy its steps verbatim before any task-specific todos. Keep a step you
+   choose not to do in the list with a one-line `skip: <reason>`.
+3. Otherwise, if the match is ambiguous or none fits, tell what you found and ask a question for the user to choose a
+playbook. Load the playbook chosen by the user; if the user chooses none, continue without loading a playbook.
 
 - **Feature** New behavior or changed behavior from a intent, proposal or issue.
 - **Refactor** Change the code's structure without changing behavior.
+- **Investigate** Answer a question about existing code or behavior. No code changes.
