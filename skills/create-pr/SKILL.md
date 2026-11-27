@@ -2,13 +2,12 @@
 name: create-pr
 description: Create a pull request for a repo via available tools. Use when creating a PR, or pull request.
 user-invocable: true
-disable-model-invocation: true
 ---
 
 # Create PR
 
 1. Commit local changes.
-2. Run unit tests and if there is any failure launch a **implementer** subagent to fix and commit.
+2. Invoke the skill `/code-review`. If there is any findings launch a **implementer** subagent to fix and commit.
 3. Find the PR title and body format required by this project (AGENTS.md, CLAUDE.md etc). Otherwise use the following.
    - Title: `type(scope): subject`. Type is `feat`, `fix`, `refactor`, or `test`. Scope is about product, business or
      feature. Subject is short, imperative.
