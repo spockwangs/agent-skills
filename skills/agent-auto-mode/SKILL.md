@@ -34,4 +34,3 @@ playbook. Load the playbook chosen by the user; if the user chooses none, contin
 
 - **Feature** New behavior or changed behavior from a intent, proposal or issue.
 - **Refactor** Change the code's structure without changing behavior.
-- **Investigate** Answer a question about existing code or behavior. No code changes.
