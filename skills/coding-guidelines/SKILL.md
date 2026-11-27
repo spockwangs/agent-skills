@@ -19,6 +19,11 @@ This skill is a door, not a rulebook: it resolves which guideline documents appl
 
 If nothing matches, say that no guideline matched and continue with the project's own conventions. Do not infer rules from a language name alone: a missing entry is a gap to report, not something to invent.
 
+## Comments Rules
+
+Only comment surprises that the user can't infer from the code. Don't comment what the code has already said. Comment
+the contract at declarations and what the code does and why at implementations.
+
 ## Adding a language
 
 Write the rules to `references/<language>.md`, then add one entry to `index.yaml`. Keep one document per language, and give narrow exceptions (tests, generated code, vendored or legacy directories) their own entries after the general one.
