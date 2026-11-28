@@ -1,5 +1,5 @@
 ---
-name: agent-auto-mode
+name: auto-playbook
 description: Autonomously execute a coding task by matching a playbook and following its steps.
 disable-model-invocation: true
 icon: crown
